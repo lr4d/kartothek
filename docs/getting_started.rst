@@ -131,5 +131,183 @@ file formats like CSV.
 
    list(store.keys())
 
+As noted at the beginning of this guide, ``kartothek`` is designed for large
+datasets with contents that are too large to be held in a single machine. While
+small, in-memory dataframes are good for getting started and learning the core
+concepts, in a production setting a way to write data in batches is useful.
+For this purpose, ``kartothek`` offers :func:`kartothek.io.eager.update_dataset_from_dataframes`
+and :func:`kartothek.io.iter.update_dataset_from_dataframes__iter`. To see how to use
+these, lets generate another dataframe with the same schema as our first one:
+
+.. ipython:: python
+
+   another_df = pd.DataFrame(
+       {
+           "A": 2.,
+           "B": pd.Timestamp("20190604"),
+           "C": pd.Series(2, index=list(range(4)), dtype="float32"),
+           "D": np.array([6] * 4, dtype="int32"),
+           "E": pd.Categorical(["test", "train", "test", "train"]),
+           "F": "bar",
+       }
+   )
+   another_df
+
+Now let us update our ``kartothek`` dataset with this new dataframe:
+
+.. ipython:: python
+
+   from kartothek.io.eager import update_dataset_from_dataframes
+   from functools import partial
+
+   store_factory = partial(get_store_from_url, f"hfs://{dataset_dir.name}")
+
+   dm = update_dataset_from_dataframes(
+       [another_df],
+       store=store_factory,
+       dataset_uuid="a_unique_dataset_identifier"
+       )
+   dm
+
+Of interest now is ``dm1.partitions`` - we can see that another partition has
+been added. What this translates to in terms of files added is that another
+``parquet`` file has been added to the store.
+
+.. ipython:: python
+
+   store.keys()
+
+Also note that the ``store`` argument of :func:`kartothek.io.eager.update_dataset_from_dataframes`
+requires a factory method.
+
+Let's now read this data back:
+
+.. ipython:: python
+
+   df_again = read_table("a_unique_dataset_identifier", store, table="table")
+   df_again
+
+Since we updated the contents of ``another_df`` into the dataset with uuid
+``a_unique_dataset_identifier`` and (again) didn't specify a table name, the
+default table was updated and ``df_again`` now effectively contains the contents
+of ``another_df`` appended to the contents of ``df``. In fact, the way
+:func:`kartothek.io.eager.update_dataset_from_dataframes` works, a new table
+_cannot_ be added to an existing dataset within an update.
+
+In case users wish to write a dataset consisting of multiple tables and
+later update specific tables within, the way to do that is outlined below.
+
+Explicitly declaring table names when writing:
+
+.. ipython:: python
+
+   df2 = pd.DataFrame(
+       {
+           "G": "foo",
+           "H": pd.Categorical(["test", "train", "test", "train"]),
+           "I": np.array([3] * 4, dtype="int32"),
+           "J": pd.Series(1, index=list(range(4)), dtype="float32"),
+           "K": pd.Timestamp("20130102"),
+           "L": 1.,
+       }
+   )
+   df2
+
+   dm = store_dataframes_as_dataset(
+      store,
+      "another_unique_dataset_identifier",
+      {
+         "table1": df,
+         "table2": df2
+      },
+      metadata_version=4
+   )
+   dm
+
+Then updating an existing dataset with new table data:
+
+.. ipython:: python
+
+   another_df2 = pd.DataFrame(
+       {
+           "G": "bar",
+           "H": pd.Categorical(["test", "train", "test", "train"]),
+           "I": np.array([6] * 4, dtype="int32"),
+           "J": pd.Series(2, index=list(range(4)), dtype="float32"),
+           "K": pd.Timestamp("20190604"),
+           "L": 2.,
+       }
+   )
+   another_df2
+
+   dm = update_dataset_from_dataframes(
+       {
+          "data":
+          {
+             "table1": another_df,
+             "table2": another_df2
+          }
+       },
+       store=store_factory,
+       dataset_uuid="another_unique_dataset_identifier"
+       )
+   dm
+
+   df_again = read_table("another_unique_dataset_identifier", store, table="table1")
+   df_again
+
+   df2_again = read_table("another_unique_dataset_identifier", store, table="table2")
+   df2_again
+
+A subset of tables CANNOT be updated and running the following update
+example instead of the one above will throw a ``ValueError``:
+
+.. ipython:: python
+
+   another_df2 = pd.DataFrame(
+       {
+           "G": "bar",
+           "H": pd.Categorical(["test", "train", "test", "train"]),
+           "I": np.array([6] * 4, dtype="int32"),
+           "J": pd.Series(2, index=list(range(4)), dtype="float32"),
+           "K": pd.Timestamp("20190604"),
+           "L": 2.,
+       }
+   )
+   another_df2
+
+   dm = update_dataset_from_dataframes(
+       {
+          "data":
+          {
+             "table2": another_df2
+          }
+       },
+       store=store_factory,
+       dataset_uuid="another_unique_dataset_identifier"
+       )
+   dm
+
+``kartothek`` assigns a default name to a table, it DOES NOT auto-generate
+unique table names, so when passing in a list of dataframes without specifying
+table names, a ``ValueError`` will be thrown if the schemas differ across
+datasets.
+
+For example, trying to run this will result in an error:
+
+.. ipython:: python
+
+   dm = store_dataframes_as_dataset(
+      store, "yet_another_unique_dataset_identifier", [df, df2], metadata_version=4
+   )
+
+But this will run fine:
+
+.. ipython:: python
+
+   dm = store_dataframes_as_dataset(
+      store, "yet_another_unique_dataset_identifier", [df, another_df], metadata_version=4
+   )
+
 .. _simplekv.KeyValueStore interface: https://simplekv.readthedocs.io/en/latest/#simplekv.KeyValueStore
 .. _storefact: https://github.com/blue-yonder/storefact
