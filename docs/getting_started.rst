@@ -194,8 +194,8 @@ of ``another_df`` appended to the contents of ``df``. In fact, the way
 :func:`kartothek.io.eager.update_dataset_from_dataframes` works, a new table
 _cannot_ be added to an existing dataset within an update.
 
-In case users wish to write a dataset consisting of multiple tables and
-later update specific tables within, the way to do that is outlined below.
+In case users wish to write a dataset consisting of multiple (different, named)
+tables and later update the tables within, the way to do that is outlined below.
 
 Explicitly declaring table names when writing:
 
