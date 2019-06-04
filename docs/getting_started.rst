@@ -131,6 +131,60 @@ file formats like CSV.
 
    list(store.keys())
 
+The examples till now have written a dataframe to a dataset without specifying the table
+name to use, relying instead on ``kartothek``s default behaviour. Generally, it would be more
+useful for users to write multiple dataframes with different schemas as different tables
+to a dataset. How this can be done is shown in the example below.
+
+Explicitly declaring table names when writing:
+
+.. ipython:: python
+
+   df2 = pd.DataFrame(
+       {
+           "G": "foo",
+           "H": pd.Categorical(["test", "train", "test", "train"]),
+           "I": np.array([3] * 4, dtype="int32"),
+           "J": pd.Series(1, index=list(range(4)), dtype="float32"),
+           "K": pd.Timestamp("20130102"),
+           "L": 1.,
+       }
+   )
+   df2
+
+   dm = store_dataframes_as_dataset(
+      store,
+      "another_unique_dataset_identifier",
+      {
+         "table1": df,
+         "table2": df2
+      },
+      metadata_version=4
+   )
+   dm
+
+If no table name is provided by the user, ``kartothek`` assigns a default name
+to a table, it DOES NOT auto-generate unique table names, so when passing in a
+list of dataframes without specifying table names, a ``ValueError`` will be
+thrown if the schemas differ across datasets.
+
+For example, trying to run this will result in an error:
+
+.. ipython:: python
+
+   dm = store_dataframes_as_dataset(
+      store, "yet_another_unique_dataset_identifier", [df, df2], metadata_version=4
+   )
+
+But this will run fine:
+
+.. ipython:: python
+
+   dm = store_dataframes_as_dataset(
+      store, "yet_another_unique_dataset_identifier", [df, another_df], metadata_version=4
+   )
+
+
 As noted at the beginning of this guide, ``kartothek`` is designed for large
 datasets with contents that are too large to be held in a single machine. While
 small, in-memory dataframes are good for getting started and learning the core
@@ -153,7 +207,7 @@ these, lets generate another dataframe with the same schema as our first one:
    )
    another_df
 
-Now let us update our ``kartothek`` dataset with this new dataframe:
+Now let us update our initial ``kartothek`` dataset with this new dataframe:
 
 .. ipython:: python
 
@@ -194,37 +248,11 @@ of ``another_df`` appended to the contents of ``df``. In fact, the way
 :func:`kartothek.io.eager.update_dataset_from_dataframes` works, a new table
 _cannot_ be added to an existing dataset within an update.
 
-In case users wish to write a dataset consisting of multiple (different, named)
-tables and later update the tables within, the way to do that is outlined below.
+Once users have written multiple dataframes with differing schemas to a dataset,
+they would also need the ability to update the tables within with new data. The
+following example shows how this can be acheived.
 
-Explicitly declaring table names when writing:
-
-.. ipython:: python
-
-   df2 = pd.DataFrame(
-       {
-           "G": "foo",
-           "H": pd.Categorical(["test", "train", "test", "train"]),
-           "I": np.array([3] * 4, dtype="int32"),
-           "J": pd.Series(1, index=list(range(4)), dtype="float32"),
-           "K": pd.Timestamp("20130102"),
-           "L": 1.,
-       }
-   )
-   df2
-
-   dm = store_dataframes_as_dataset(
-      store,
-      "another_unique_dataset_identifier",
-      {
-         "table1": df,
-         "table2": df2
-      },
-      metadata_version=4
-   )
-   dm
-
-Then updating an existing dataset with new table data:
+Updating an existing dataset with new table data:
 
 .. ipython:: python
 
@@ -287,27 +315,6 @@ example instead of the one above will throw a ``ValueError``:
        dataset_uuid="another_unique_dataset_identifier"
        )
    dm
-
-``kartothek`` assigns a default name to a table, it DOES NOT auto-generate
-unique table names, so when passing in a list of dataframes without specifying
-table names, a ``ValueError`` will be thrown if the schemas differ across
-datasets.
-
-For example, trying to run this will result in an error:
-
-.. ipython:: python
-
-   dm = store_dataframes_as_dataset(
-      store, "yet_another_unique_dataset_identifier", [df, df2], metadata_version=4
-   )
-
-But this will run fine:
-
-.. ipython:: python
-
-   dm = store_dataframes_as_dataset(
-      store, "yet_another_unique_dataset_identifier", [df, another_df], metadata_version=4
-   )
 
 .. _simplekv.KeyValueStore interface: https://simplekv.readthedocs.io/en/latest/#simplekv.KeyValueStore
 .. _storefact: https://github.com/blue-yonder/storefact
