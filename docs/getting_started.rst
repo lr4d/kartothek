@@ -132,9 +132,9 @@ file formats like CSV.
    list(store.keys())
 
 The examples till now have written a dataframe to a dataset without specifying the table
-name to use, relying instead on ``kartothek``s default behaviour. Generally, it would be more
-useful for users to write multiple dataframes with different schemas as different tables
-to a dataset. How this can be done is shown in the example below.
+name to use, relying instead on the default behaviour of ``kartothek``. Generally, it
+would be more useful for users to write multiple dataframes with different schemas as
+different tables to a dataset. How this can be done is shown in the example below.
 
 Explicitly declaring table names when writing:
 
