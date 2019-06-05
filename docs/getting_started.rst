@@ -339,5 +339,41 @@ Trying to update a subset of tables throws a ``ValueError``:
        )
    dm
 
+Garbage collection
+------------------
+When ``kartothek`` is executing an operation, it makes sure to not
+commit changes to the dataset until the operation has been succesfully completed. If a
+write operation does not succeed for any reason, although there may be new files written
+to storage, those files will not used by the dataset as they will not be referenced in
+the ``kartothek`` metadata. Thus, when the user reads the dataset, no new data will
+appear in the output.
+
+Similarly, when deleting a partition, ``kartothek`` only removes the reference of that file
+from the metadata.
+
+
+These temporary files will remain in storage until garbage collection is called in
+``kartothek``.
+
+If a dataset is updated on a regular basis, it may be useful to run garbage collection
+periodically to decrease unnecessary storage use.
+
+An example of garbage collection is shown below. A file named ``trash.parquet`` is
+created in storage but untracked by kartothek. When garbage collection is called, the
+file is removed.
+
+.. ipython:: python
+
+   from kartothek.io.eager import garbage_collect_dataset
+
+   # Put corrupt parquet file in storage
+   store.put("a_unique_dataset_identifier/table/trash.parquet", b"trash")
+   files_before = set(store.keys())
+
+   garbage_collect_dataset(store=store_factory, dataset_uuid="a_unique_dataset_identifier")
+
+   files_before.difference(store.keys())  # Show files removed
+
+
 .. _simplekv.KeyValueStore interface: https://simplekv.readthedocs.io/en/latest/#simplekv.KeyValueStore
 .. _storefact: https://github.com/blue-yonder/storefact
