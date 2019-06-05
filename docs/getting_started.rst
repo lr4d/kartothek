@@ -128,7 +128,7 @@ of the new data matches the schema of the existing data. If it doesn't, we
 will raise an exception.
 
 Generally speaking, it would be useful for users to be able to write multiple
-dataframes with different schemas as different into **one** dataset. This
+dataframes with different schemas into **one** dataset. This
 can be done by explicitly declaring table names when writing:
 
 .. ipython:: python
@@ -156,13 +156,16 @@ can be done by explicitly declaring table names when writing:
    )
    dm
 
+If dataframes (all with the same schema) are passed in 'anonymously'
+as a list, they are essentially interpreted by ``kartothek`` as
+different partitions of the `same` table.
+
 As noted earlier, if no table name is provided by the user, ``kartothek``
 assigns a default name to a table, it **does not** auto-generate unique
-table names, so when passing in a list of dataframes without specifying
-table names, a ``ValueError`` will be thrown if the schemas differ
-across datasets.
+table names. So when passing in a list of dataframes with differing schemas
+and without specifying table names, a ``ValueError`` will be thrown.
 
-For example, this throws a ``ValueError``:
+For example, this will not work:
 
 .. ipython:: python
    :okexcept:
@@ -171,7 +174,7 @@ For example, this throws a ``ValueError``:
       store, "yet_another_unique_dataset_identifier", [df, df2], metadata_version=4
    )
 
-But this runs fine:
+But this runs fine, because both dataframes passed in have identical schemas:
 
 .. ipython:: python
 
@@ -188,7 +191,10 @@ But this runs fine:
    another_df
 
    dm = store_dataframes_as_dataset(
-      store, "yet_another_unique_dataset_identifier", [df, another_df], metadata_version=4
+      store,
+      "yet_another_unique_dataset_identifier",
+      [df, another_df],
+      metadata_version=4
    )
 
 
@@ -211,13 +217,13 @@ returns the whole dataset as a pandas DataFrame.
 Updating existing datasets
 --------------------------
 
-As noted at the beginning of this guide, ``kartothek`` is designed for large
-datasets with contents that are too large to be held in a single machine. While
-small, in-memory dataframes are good for getting started and learning the core
-concepts, in a production setting a way to write data in batches is useful.
-For this purpose, ``kartothek`` offers :func:`kartothek.io.eager.update_dataset_from_dataframes`
-and :func:`kartothek.io.iter.update_dataset_from_dataframes__iter`. To see how to
-update data in an existing dataset, lets reuse ``another_df`` from the example
+Once we have a dataset in storage, it would be useful to be able to update the data in them.
+This is possible by adding new partitions using update functions that generally have the prefix
+`update_dataset` in their names. For example, :func:`kartothek.io.eager.update_dataset_from_dataframes`
+is the update function for the ``eager`` backend, whereas
+:func:`kartothek.io.iter.update_dataset_from_dataframes__iter` is the update function for the ``iter`` one.
+
+To see how to update data in an existing dataset, lets reuse ``another_df`` from the example
 above and use the update functionality from ``eager`` to do so:
 
 .. ipython:: python
@@ -258,14 +264,16 @@ Let's now see what happens when we read this data back:
 Since we updated the contents of ``another_df`` into the dataset with uuid
 ``a_unique_dataset_identifier`` and (again) didn't specify a table name, the
 default table was updated and ``df_again`` now effectively contains the contents
-of ``another_df`` appended to the contents of ``df``. In fact, the way
-:func:`kartothek.io.eager.update_dataset_from_dataframes` works, a new table
-(that is, a dataframe with a _different_ schema) **cannot** be added to an
-existing dataset with an update.
+of ``another_df`` appended to the contents of ``df``.
 
-Once users have written multiple dataframes with differing schemas to a dataset,
-they would also need the ability to update the tables within with new data. The
-following example shows how this can be acheived.
+The way dataset updates works is that new partitions can be added for a dataset
+as long as they have the same tables as the existing partitions. A `different`
+table **cannot** introduced into an existing dataset with an update.
+
+Once users have written multiple (named) tables to a dataset, they would also
+need the ability to update these tables with new data. Updates require that all
+tables of a dataset must be updated together and a subset of tables **cannot** be
+individually updated.
 
 Updating an existing dataset with new table data:
 
@@ -302,8 +310,7 @@ Updating an existing dataset with new table data:
    df2_again = read_table("another_unique_dataset_identifier", store, table="table2")
    df2_again
 
-A subset of tables **cannot** be updated and running the following update
-example instead throws a ``ValueError``:
+Trying to update a subset of tables throws a ``ValueError``:
 
 .. ipython:: python
    :okexcept:
