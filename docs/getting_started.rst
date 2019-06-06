@@ -40,7 +40,7 @@ example to construct such a store for the local filesystem.
     dataset_dir = TemporaryDirectory()
     store = get_store_from_url(f"hfs://{dataset_dir.name}")
 
-Writing datasets to storage
+Writing dataset to storage
 ===========================
 Now that we have our data and the storage location, we can persist the dataset.
 For that we use in this guide :func:`kartothek.io.eager.store_dataframes_as_dataset`
@@ -59,6 +59,8 @@ to store a ``DataFrame`` we already have in memory in the local task.
 
     - ``eager`` runs all execution immediately and on the local machine.
     - ``iter`` executes operations on the dataset on a per-partition basis.
+      The standard format to read/store dataframes in ``iter`` is by providing
+      a generator of dataframes.
     - ``dask`` is suitable for larger datasets. It can be used to work on datasets in
       parallel or even in a cluster by using ``distributed`` as the backend for
       ``dask``.
@@ -88,34 +90,13 @@ For this guide, two attributes that are noteworthy are ``tables`` and ``partitio
   Partitions are structurally identical to each other, each partition of a dataset has the
   same number of dataframes (one for each table) as the rest of partitions.
 
-.. admonition:: A more complex example: multiple tables
+.. admonition:: Passing multiple partitions to a dataset
 
-    In this example, we create a dataset with two partitions, named ``partition-1`` and 
-    ``partition-2``.
-    For each partition, there exist two tables: ``core-table`` and ``aux-table``.
-    The schemas of the tables are identical across partitions.
+    To store multiple dataframes into a dataset (i.e. multiple `partitions`), it is possible
+    to pass an iterator of dataframes, the exact format will depend on the I/O backend used.
 
-    .. ipython:: python
-        :okwarning:
-
-        dfs = [
-                {
-                    "label": "partition-1",
-                    "data": [
-                        ("core-table", pd.DataFrame({"col1": ["x"]})),
-                        ("aux-table", pd.DataFrame({"f": [1.1]})),
-                    ],
-                },
-                {
-                    "label": "partition-2",
-                    "data": [
-                        ("core-table", pd.DataFrame({"col1": ["y"]})),
-                        ("aux-table", pd.DataFrame({"f": [1.2]})),
-                    ],
-                },
-        ]
-
-        store_dataframes_as_dataset(store, dataset_uuid="two-tables", dfs=dfs)
+    If passing an iterator of dataframes, and table names are not specified, ``kartothek``
+    assumes these dataframes are different partitions with a single table.
 
 As we have not explicitly defined the name of the table nor the name
 of the created partition, ``kartothek`` has used the default table name
@@ -129,94 +110,84 @@ of the created partition, ``kartothek`` has used the default table name
 For each table, ``kartothek`` also tracks the schema of the columns.
 Unless specified explicitly on write, it is inferred from the passed data.
 On writing additional data to a dataset, we will also check that the schema
-of the new data matches the schema of the existing data. If it doesn't, we
-will raise an exception.
+of the new data matches the schema of the existing data.
+A ``ValueError`` will be thrown if there is a mismatch in the schema. For example,
+passing a list of dataframes with differing schemas and without table names to
+:func:`kartothek.io.eager.store_dataframes_as_dataset`.
 
-Generally speaking, it would be useful for users to be able to write multiple
-dataframes with different schemas into **one** dataset. This
-can be done by explicitly declaring table names when writing:
+.. admonition:: A more complex example: multiple tables and partitions
 
-.. ipython:: python
+    Sometimes it may be useful to write multiple dataframes with different schemas into
+    a single dataset. This can be achieved by creating a dataset with multiple tables.
 
-    df2 = pd.DataFrame(
-        {
-            "G": "foo",
-            "H": pd.Categorical(["test", "train", "test", "train"]),
-            "I": np.array([3] * 4, dtype="int32"),
-            "J": pd.Series(1, index=list(range(4)), dtype="float32"),
-            "K": pd.Timestamp("20130102"),
-            "L": 1.,
-        }
-    )
-    df2
+    In this example, we create a dataset with two partitions (represented by
+    the dictionary objects inside the list).
+    For each partition, there exist two tables: ``core-table`` and ``aux-table``.
+    The schemas of the tables are identical across partitions.
 
-    dm = store_dataframes_as_dataset(
-        store,
-        "another_unique_dataset_identifier",
-        {
-            "table1": df,
-            "table2": df2
-        },
-        metadata_version=4
-    )
-    dm
+    .. ipython:: python
+       :okwarning:
+       :okexcept:
 
-If dataframes (all with the same schema) are passed in 'anonymously'
-as a list, they are essentially interpreted by ``kartothek`` as
-different partitions of the `same` table.
+       dfs = [
+            {
+                "data": {
+                    "core-table": pd.DataFrame({"col1": ["x"]}),
+                    "aux-table": pd.DataFrame({"f": [1.1]}),
+                },
+            },
+            {
+                "data": {
+                    "core-table": pd.DataFrame({"col1": ["y"]}),
+                    "aux-table": pd.DataFrame({"f": [1.2]}),
+                },
+            },
+       ]
 
-As noted earlier, if no table name is provided by the user, ``kartothek``
-assigns a default name to a table, it **does not** auto-generate unique
-table names. So when passing in a list of dataframes with differing schemas
-and without specifying table names, a ``ValueError`` will be thrown.
+       store_dataframes_as_dataset(store, dataset_uuid="two-tables", dfs=dfs)
 
-For example, this will not work:
+.. For example, this will not work:
 
-.. ipython:: python
+.. .. ipython:: python
+..     :okwarning:
+..     :okexcept:
 
-    try:
-        dm = store_dataframes_as_dataset(
-            store,
-            "yet_another_unique_dataset_identifier",
-            [df, df2],
-            metadata_version=4
-        )
-    except ValueError as ve:
-        print("{}".format(ve.args[0]))
+..     df2 = pd.DataFrame(
+..         {
+..             "G": "foo",
+..             "H": pd.Categorical(["test", "train", "test", "train"]),
+..             "I": np.array([3] * 4, dtype="int32"),
+..             "J": pd.Series(1, index=list(range(4)), dtype="float32"),
+..             "K": pd.Timestamp("20130102"),
+..             "L": 1.,
+..         }
+..     )
 
-But this runs fine, because both dataframes passed in have identical schemas:
+..     store_dataframes_as_dataset(
+..         store,
+..         dataset_uuid="another_unique_dataset_identifier",
+..         dfs = {
+..             "table1": df,
+..             "table2": df2
+..         },
+..     )
 
-.. ipython:: python
-
-    another_df = pd.DataFrame(
-        {
-            "A": 2.,
-            "B": pd.Timestamp("20190604"),
-            "C": pd.Series(2, index=list(range(4)), dtype="float32"),
-            "D": np.array([6] * 4, dtype="int32"),
-            "E": pd.Categorical(["test", "train", "test", "train"]),
-            "F": "bar",
-        }
-    )
-    another_df
-
-    dm = store_dataframes_as_dataset(
-        store,
-        "yet_another_unique_dataset_identifier",
-        [df, another_df],
-        metadata_version=4
-    )
+.. If dataframes (all with the same schema) are passed in 'anonymously'
+.. as a list, they are essentially interpreted by ``kartothek`` as
+.. different partitions of the `same` table.
+    
 
 
-Reading datasets from storage
+Reading dataset from storage
 =============================
-After we have written the data, we want to read it back in again. For this we
-use :func:`kartothek.io.eager.read_table`. This method
-returns the whole dataset as a pandas DataFrame.
-
+After we have written the data, we want to read it back in again. For this we can
+use :func:`kartothek.io.eager.read_table`. This method returns the complete
+table of the dataset as a pandas DataFrame (since there is only a single table in this
+example, it returns the entire dataset).
 
 .. ipython:: python
     :okwarning:
+    :okexcept:
 
     from kartothek.io.eager import read_table
 
@@ -242,6 +213,7 @@ above and use the update functionality from ``eager`` to do so:
     from functools import partial
 
     store_factory = partial(get_store_from_url, f"hfs://{dataset_dir.name}")
+    another_df = df.copy()
 
     dm = update_dataset_from_dataframes(
         [another_df],
@@ -312,190 +284,33 @@ Updating an existing dataset with new table data:
     )
     dm
 
-    df_again = read_table("another_unique_dataset_identifier", store, table="table1")
-    df_again
-
-    df2_again = read_table("another_unique_dataset_identifier", store, table="table2")
-    df2_again
 
 Trying to update a subset of tables throws a ``ValueError``:
 
-.. ipython:: python
+.. ipython::
 
-    another_df2 = pd.DataFrame(
-        {
-            "G": "bar",
-            "H": pd.Categorical(["test", "train", "test", "train"]),
-            "I": np.array([6] * 4, dtype="int32"),
-            "J": pd.Series(2, index=list(range(4)), dtype="float32"),
-            "K": pd.Timestamp("20190604"),
-            "L": 2.,
-        }
-    )
-    another_df2
+   @verbatim
+   In [45]: update_dataset_from_dataframes(
+      ....:        {
+      ....:           "data":
+      ....:           {
+      ....:              "table2": another_df2
+      ....:           }
+      ....:        },
+      ....:        store=store_factory,
+      ....:        dataset_uuid="another_unique_dataset_identifier"
+      ....:        )
+      ....:
+   ---------------------------------------------------------------------------
+   ValueError: Input partitions for update have different tables than dataset:
+   Input partition tables: {'table2'}
+   Tables of existing dataset: ['table1', 'table2']
 
-    try:
-        dm = update_dataset_from_dataframes(
-            {
-                "data":
-                {
-                    "table2": another_df2
-                }
-            },
-            store=store_factory,
-            dataset_uuid="another_unique_dataset_identifier"
-        )
-        dm
-    except ValueError as ve:
-        print("{}".format(ve.args[0]))
 
-Partitioning and secondary indices
-==================================
-
-``kartothek`` is designed primarily for storing large datasets consistently and
-accessing them efficiently. To achieve this, it provides two useful functionalities:
-partitioning and secondary indices.
-
-Partitioning
-------------
-
-As we have already seen, updating a dataset in ``kartothek`` amounts to adding new
-partitions, which in the underlying key-value store translates to writing new files
-to the storage layer.
-
-From the perspective of efficient access, it would be helpful if accessing a subset
-of written data doesn't require reading through an entire dataset to be able to identify
-and access the required subset. This is where partitioning by table columns helps.
-
-Specifically, ``kartothek`` allows users to (physically) partition their data by the
-values of table columns such that all the rows with the same value of the column all get
-written to the same partition. To do this, we use the ``partition_on`` keyword argument:
-
-.. ipython:: python
-
-    dm = store_dataframes_as_dataset(
-        store,
-        "partitioned_dataset",
-        df,
-        partition_on = 'E',
-        metadata_version=4
-    )
-    dm
-
-Of interest here is ``dm.partitions``:
-
-.. ipython:: python
-
-    dm.partitions
-
-    store.keys()
-
-Partitioning can even be performed on multiple columns; in this case, columns needs to
-be specified as a list:
-
-.. ipython:: python
-
-    dm = store_dataframes_as_dataset(
-        store,
-        "another_partitioned_dataset",
-        [df, another_df],
-        partition_on = ['E', 'F'],
-        metadata_version=4
-    )
-    dm
-
-    dm.partitions
-
-Generally speaking, partitions are stored as
-``<p_column_1_name>=<p_column_1_value>/.../<p_column_N_name>=<p_column_N_value>/<partition_label>``
-
-For datasets consisting of multiple (therefore, named) tables, partitioning on
-columns only works if the column exists in both tables and is of the same data type.
-
-So, for example, (weirdly enough) this will work:
-
-.. ipython:: python
-
-    df3 = pd.DataFrame(
-        {
-            "G": "foo",
-            "E": pd.Categorical(["test2", "train2", "test2", "train2"]),
-            "I": np.array([3] * 4, dtype="int32"),
-            "J": pd.Series(1, index=list(range(4)), dtype="float32"),
-            "K": pd.Timestamp("20130102"),
-            "L": 1.,
-        }
-    )
-    df3
-
-    dm = store_dataframes_as_dataset(
-        store,
-        "multiple_partitioned_tables",
-        {
-            "table1": df,
-            "table2": df3
-        },
-        partition_on='E',
-        metadata_version=4
-    )
-    dm
-
-    dm.partitions
-
-But the following two examples throw a ``ValueError``.
-
-Example of error when the partition columns don't exist in all tables:
-
-.. ipython:: python
-
-    try:
-        dm = store_dataframes_as_dataset(
-            store,
-            "erroneously_partitioned_dataset",
-            {
-                "table1": df,
-                "table2": df2
-            },
-            partition_on = ['E', 'H'],
-            metadata_version=4
-        )
-    except ValueError as ve:
-        print("{}".format(ve.args[0]))
-
-Example of error when the partition column exists in both tables but has
-different types:
-
-.. ipython:: python
-
-    df4 = pd.DataFrame(
-        {
-            "G": "foo",
-            "E": pd.Categorical([True, False, True, False]),
-            "I": np.array([3] * 4, dtype="int32"),
-            "J": pd.Series(1, index=list(range(4)), dtype="float32"),
-            "K": pd.Timestamp("20130102"),
-            "L": 1.,
-        }
-    )
-    df4
-
-    try:
-        dm = store_dataframes_as_dataset(
-            store,
-            "another_erroneously_partitioned_dataset",
-            {
-                "table1": df,
-                "table2": df4
-            },
-            partition_on='E',
-            metadata_version=4
-        )
-    except ValueError as ve:
-        print("{}".format(ve.args[0]))
 
 
 Garbage collection
-------------------
+==================
 When ``kartothek`` is executing an operation, it makes sure to not
 commit changes to the dataset until the operation has been succesfully completed. If a
 write operation does not succeed for any reason, although there may be new files written
@@ -507,9 +322,8 @@ Similarly, when deleting a partition, ``kartothek`` only removes the reference o
 from the metadata.
 
 
-These temporary files will remain in storage until garbage collection is called in
-``kartothek``.
-
+These temporary files will remain in storage until a ``kartothek``  garbage collection
+function is called on the dataset.
 If a dataset is updated on a regular basis, it may be useful to run garbage collection
 periodically to decrease unnecessary storage use.
 
@@ -518,10 +332,12 @@ created in storage but untracked by kartothek. When garbage collection is called
 file is removed.
 
 .. ipython:: python
+   :okexcept:
+   :okwarning:
 
    from kartothek.io.eager import garbage_collect_dataset
 
-   # Put corrupt parquet file in storage
+   # Put corrupt parquet file in storage for dataset "a_unique_dataset_identifier"
    store.put("a_unique_dataset_identifier/table/trash.parquet", b"trash")
    files_before = set(store.keys())
 
