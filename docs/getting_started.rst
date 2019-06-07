@@ -322,18 +322,6 @@ Trying to update a subset of tables throws a ``ValueError``:
 
 .. ipython:: python
 
-    another_df2 = pd.DataFrame(
-        {
-            "G": "bar",
-            "H": pd.Categorical(["test", "train", "test", "train"]),
-            "I": np.array([6] * 4, dtype="int32"),
-            "J": pd.Series(2, index=list(range(4)), dtype="float32"),
-            "K": pd.Timestamp("20190604"),
-            "L": 2.,
-        }
-    )
-    another_df2
-
     try:
         dm = update_dataset_from_dataframes(
             {
@@ -349,7 +337,7 @@ Trying to update a subset of tables throws a ``ValueError``:
     except ValueError as ve:
         print("{}".format(ve.args[0]))
 
-Partitioning and secondary indices
+Partitioning and Secondary Indices
 ==================================
 
 ``kartothek`` is designed primarily for storing large datasets consistently and
@@ -492,6 +480,92 @@ different types:
         )
     except ValueError as ve:
         print("{}".format(ve.args[0]))
+
+Because partitions are physical in nature, it is not possible to 'add' partitioning
+to an existing dataset via an update:
+
+.. ipython:: python
+
+    dm = store_dataframes_as_dataset(
+        store,
+        "wont_work",
+        df,
+        metadata_version=4
+    )
+
+    try:
+        dm = update_dataset_from_dataframes(
+            [another_df],
+            store=store_factory,
+            partition_on='E',
+            dataset_uuid="wont_work"
+        )
+    except ValueError as ve:
+        print("{}".format(ve.args[0]))
+
+.. seealso:: :ref:`dataset_spec`
+
+Secondary Indices
+-----------------
+
+The ability to build and maintain secondary indices are an additional ability
+provided by ``kartothek``. Secondary indices are `similar` to partitions in the
+sense that they allow faster access to subsets of data. The main difference
+between them is that while partitioning actually creates separate partitions based
+on column values, secondary indices are simply python dictionaries mapping column
+values and the partitions that rows with them can be found in.
+
+.. note::
+
+    The examples we've looked at so far have all used functions from the ``eager``
+    backend. As noted earlier, the ``iter`` backend executes operations on the dataset
+    on a per-partition basis and accordingly data inputs are expected to be iterable
+    objects like generators. Even though using lists also works, doing so is counter
+    to the intent of the ``iter`` backend.
+
+Writing a dataset with a secondary index:
+
+.. ipython:: python
+
+    from kartothek.io.iter import store_dataframes_as_dataset__iter
+    df_gen = (dt_fr for dt_fr in [df, another_df])
+
+    dm = store_dataframes_as_dataset__iter(
+        df_gen,
+        store,
+        "secondarily_indexed",
+        partition_on = "E",
+        secondary_indices = "F"
+    )
+    dm
+
+    dm1 = dm.load_all_indices(store)
+    dm1.secondary_indices['F'].index_dct
+
+As can be seen from the example above, both ``partition_on`` and ``secondary_indices``
+can be specified together. Multiple ``secondary_indices`` can also be added:
+
+.. ipython:: python
+
+    df_gen = (dt_fr for dt_fr in [df, another_df])
+
+    dm = store_dataframes_as_dataset__iter(
+        df_gen,
+        store,
+        "doubly_secondarily_indexed",
+        partition_on = "E",
+        secondary_indices = ["F","A"]
+    )
+    dm
+
+    dm1 = dm.load_all_indices(store)
+    dm1.secondary_indices['F'].index_dct
+    dm1.secondary_indices['A'].index_dct
+
+
+
+In general, secondary indices behave like partitions in terms of when and how they can
+and cannot be created.
 
 
 .. _simplekv.KeyValueStore interface: https://simplekv.readthedocs.io/en/latest/#simplekv.KeyValueStore
