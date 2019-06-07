@@ -25,8 +25,10 @@ purposes, we use a small DataFrame with a mixed set of types.
     )
     df
 
+
 Defining the storage location
 =============================
+
 We want to store this DataFrame now as a dataset. Therefore, we first need
 to connect to a storage location. ``kartothek`` can write to any location that
 fulfills the `simplekv.KeyValueStore interface`_. We use `storefact`_ in this
@@ -40,8 +42,10 @@ example to construct such a store for the local filesystem.
     dataset_dir = TemporaryDirectory()
     store = get_store_from_url(f"hfs://{dataset_dir.name}")
 
+
 Writing dataset to storage
 ===========================
+
 Now that we have our data and the storage location, we can persist the dataset.
 For that we use in this guide :func:`kartothek.io.eager.store_dataframes_as_dataset`
 to store a ``DataFrame`` we already have in memory in the local task.
@@ -180,6 +184,7 @@ passing a list of dataframes with differing schemas and without table names to
 
 Reading dataset from storage
 =============================
+
 After we have written the data, we want to read it back in again. For this we can
 use :func:`kartothek.io.eager.read_table`. This method returns the complete
 table of the dataset as a pandas DataFrame (since there is only a single table in this
@@ -204,8 +209,8 @@ This is possible by adding new partitions using update functions that generally 
 is the update function for the ``eager`` backend, whereas
 :func:`kartothek.io.iter.update_dataset_from_dataframes__iter` is the update function for the ``iter`` one.
 
-To see how to update data in an existing dataset, lets reuse ``another_df`` from the example
-above and use the update functionality from ``eager`` to do so:
+To see how to update data in an existing dataset, lets create ``another_df`` and use the update functionality
+from ``eager`` to do so:
 
 .. ipython:: python
 
@@ -307,10 +312,251 @@ Trying to update a subset of tables throws a ``ValueError``:
    Tables of existing dataset: ['table1', 'table2']
 
 
+Partitioning and Secondary Indices
+==================================
+
+``kartothek`` is designed primarily for storing large datasets consistently and
+accessing them efficiently. To achieve this, it provides two useful functionalities:
+partitioning and secondary indices.
+
+Partitioning
+------------
+
+As we have already seen, updating a dataset in ``kartothek`` amounts to adding new
+partitions, which in the underlying key-value store translates to writing new files
+to the storage layer.
+
+From the perspective of efficient access, it would be helpful if accessing a subset
+of written data doesn't require reading through an entire dataset to be able to identify
+and access the required subset. This is where partitioning by table columns helps.
+
+Specifically, ``kartothek`` allows users to (physically) partition their data by the
+values of table columns such that all the rows with the same value of the column all get
+written to the same partition. To do this, we use the ``partition_on`` keyword argument:
+
+.. ipython:: python
+
+    dm = store_dataframes_as_dataset(
+        store,
+        "partitioned_dataset",
+        df,
+        partition_on = 'E',
+        metadata_version=4
+    )
+    dm
+
+Of interest here is ``dm.partitions``:
+
+.. ipython:: python
+
+    dm.partitions
+
+    store.keys()
+
+Partitioning can even be performed on multiple columns; in this case, columns needs to
+be specified as a list:
+
+.. ipython:: python
+
+    dm = store_dataframes_as_dataset(
+        store,
+        "another_partitioned_dataset",
+        [df, another_df],
+        partition_on = ['E', 'F'],
+        metadata_version=4
+    )
+    dm
+
+    dm.partitions
+
+Generally speaking, partitions are stored as
+``<p_column_1_name>=<p_column_1_value>/.../<p_column_N_name>=<p_column_N_value>/<partition_label>``
+
+For datasets consisting of multiple (therefore, named) tables, partitioning on
+columns only works if the column exists in both tables and is of the same data type.
+
+So, for example, (weirdly enough) this will work:
+
+.. ipython:: python
+
+    df3 = pd.DataFrame(
+        {
+            "G": "foo",
+            "E": pd.Categorical(["test2", "train2", "test2", "train2"]),
+            "I": np.array([3] * 4, dtype="int32"),
+            "J": pd.Series(1, index=list(range(4)), dtype="float32"),
+            "K": pd.Timestamp("20130102"),
+            "L": 1.,
+        }
+    )
+    df3
+
+    dm = store_dataframes_as_dataset(
+        store,
+        "multiple_partitioned_tables",
+        {
+            "table1": df,
+            "table2": df3
+        },
+        partition_on='E',
+        metadata_version=4
+    )
+    dm
+
+    dm.partitions
+
+But the following two examples throw a ``ValueError``.
+
+Example of error when the partition columns don't exist in all tables:
+
+.. ipython:: python
+
+    df2 = pd.DataFrame(
+        {
+            "G": "foo",
+            "H": pd.Categorical(["test", "train", "test", "train"]),
+            "I": np.array([3] * 4, dtype="int32"),
+            "J": pd.Series(1, index=list(range(4)), dtype="float32"),
+            "K": pd.Timestamp("20130102"),
+            "L": 1.,
+        }
+    )
+
+    try:
+        dm = store_dataframes_as_dataset(
+            store,
+            "erroneously_partitioned_dataset",
+            {
+                "table1": df,
+                "table2": df2
+            },
+            partition_on = ['E', 'H'],
+            metadata_version=4
+        )
+    except ValueError as ve:
+        print("{}".format(ve.args[0]))
+
+Example of error when the partition column exists in both tables but has
+different types:
+
+.. ipython:: python
+
+    df4 = pd.DataFrame(
+        {
+            "G": "foo",
+            "E": pd.Categorical([True, False, True, False]),
+            "I": np.array([3] * 4, dtype="int32"),
+            "J": pd.Series(1, index=list(range(4)), dtype="float32"),
+            "K": pd.Timestamp("20130102"),
+            "L": 1.,
+        }
+    )
+    df4
+
+    try:
+        dm = store_dataframes_as_dataset(
+            store,
+            "another_erroneously_partitioned_dataset",
+            {
+                "table1": df,
+                "table2": df4
+            },
+            partition_on='E',
+            metadata_version=4
+        )
+    except ValueError as ve:
+        print("{}".format(ve.args[0]))
+
+Because partitions are physical in nature, it is not possible to 'add' partitioning
+to an existing dataset via an update:
+
+.. ipython:: python
+
+    dm = store_dataframes_as_dataset(
+        store,
+        "wont_work",
+        df,
+        metadata_version=4
+    )
+
+    try:
+        dm = update_dataset_from_dataframes(
+            [another_df],
+            store=store_factory,
+            partition_on='E',
+            dataset_uuid="wont_work"
+        )
+    except ValueError as ve:
+        print("{}".format(ve.args[0]))
+
+.. seealso:: :ref:`dataset_spec`
+
+Secondary Indices
+-----------------
+
+The ability to build and maintain secondary indices are an additional ability
+provided by ``kartothek``. Secondary indices are `similar` to partitions in the
+sense that they allow faster access to subsets of data. The main difference
+between them is that while partitioning actually creates separate partitions based
+on column values, secondary indices are simply python dictionaries mapping column
+values and the partitions that rows with them can be found in.
+
+.. note::
+
+    The examples we've looked at so far have all used functions from the ``eager``
+    backend. As noted earlier, the ``iter`` backend executes operations on the dataset
+    on a per-partition basis and accordingly data inputs are expected to be iterable
+    objects like generators. Even though using lists also works, doing so is counter
+    to the intent of the ``iter`` backend.
+
+Writing a dataset with a secondary index:
+
+.. ipython:: python
+
+    from kartothek.io.iter import store_dataframes_as_dataset__iter
+    df_gen = (dt_fr for dt_fr in [df, another_df])
+
+    dm = store_dataframes_as_dataset__iter(
+        df_gen,
+        store,
+        "secondarily_indexed",
+        partition_on = "E",
+        secondary_indices = "F"
+    )
+    dm
+
+    dm1 = dm.load_all_indices(store)
+    dm1.secondary_indices['F'].index_dct
+
+As can be seen from the example above, both ``partition_on`` and ``secondary_indices``
+can be specified together. Multiple ``secondary_indices`` can also be added:
+
+.. ipython:: python
+
+    df_gen = (dt_fr for dt_fr in [df, another_df])
+
+    dm = store_dataframes_as_dataset__iter(
+        df_gen,
+        store,
+        "doubly_secondarily_indexed",
+        partition_on = "E",
+        secondary_indices = ["F","A"]
+    )
+    dm
+
+    dm1 = dm.load_all_indices(store)
+    dm1.secondary_indices['F'].index_dct
+    dm1.secondary_indices['A'].index_dct
+
+
+
+In general, secondary indices behave like partitions in terms of when and how they can
+and cannot be created.
 
 
 Garbage collection
 ==================
+
 When ``kartothek`` is executing an operation, it makes sure to not
 commit changes to the dataset until the operation has been succesfully completed. If a
 write operation does not succeed for any reason, although there may be new files written
