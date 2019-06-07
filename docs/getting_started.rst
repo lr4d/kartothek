@@ -4,9 +4,9 @@ Getting started
 
 ``kartothek`` manages datasets that consist of files that contain tables.
 When working with these tables as a Python user, we will use pandas DataFrames
-as the user-facing type. We typically expect that the dataset contents are
-large, often too large to be held in a single machine but for demonstration
-purposes, we use a small DataFrame with a mixed set of types.
+as the user-facing type. We typically expect that the contents of a dataset are
+large, often too large to be held in memory by a single machine but for demonstration
+purposes, we will use a small DataFrame with a mixed set of types.
 
 .. ipython:: python
 
@@ -35,12 +35,17 @@ fulfills the `simplekv.KeyValueStore interface`_. We use `storefact`_ in this
 example to construct such a store for the local filesystem.
 
 .. ipython:: python
+    :okexcept:
 
+    from functools import partial
     from storefact import get_store_from_url
     from tempfile import TemporaryDirectory
 
     dataset_dir = TemporaryDirectory()
-    store = get_store_from_url(f"hfs://{dataset_dir.name}")
+
+    store_factory = partial(get_store_from_url, f"hfs://{dataset_dir.name}")
+    store = store_factory()
+
 
 
 Writing dataset to storage
@@ -50,26 +55,8 @@ Now that we have our data and the storage location, we can persist the dataset.
 For that we use in this guide :func:`kartothek.io.eager.store_dataframes_as_dataset`
 to store a ``DataFrame`` we already have in memory in the local task.
 
-.. admonition:: Storage backends
-
-    The import path of this function already gives us a hint about the general
-    structuring of the ``kartothek`` modules. In :mod:`kartothek.io` we have all
-    the building blocks to build data pipelines that read and write from/to storages.
-    Other top-level modules for example handle the serialization of DataFrames to
-    ``bytes``.
-
-    The next module level (``eager``) describes the scheduling backend.
-    The scheduling backends supported by kartothek are:
-
-    - ``eager`` runs all execution immediately and on the local machine.
-    - ``iter`` executes operations on the dataset on a per-partition basis.
-      The standard format to read/store dataframes in ``iter`` is by providing
-      a generator of dataframes.
-    - ``dask`` is suitable for larger datasets. It can be used to work on datasets in
-      parallel or even in a cluster by using ``distributed`` as the backend for
-      ``dask``.
-
 .. ipython:: python
+    :okexcept:
     :okwarning:
 
     from kartothek.io.eager import store_dataframes_as_dataset
@@ -81,20 +68,47 @@ to store a ``DataFrame`` we already have in memory in the local task.
     )
     dm
 
+.. admonition:: Storage backends
+
+    The import path of this function already gives us a hint about the general
+    structuring of the ``kartothek`` modules. In :mod:`kartothek.io` we have all
+    the building blocks to build data pipelines that read and write from/to storages.
+    The next module level (``eager``) describes the scheduling backend.
+
+    The scheduling backends supported by kartothek are:
+
+    - ``eager`` runs all execution immediately and on the local machine.
+    - ``iter`` executes operations on the dataset on a per-partition basis.
+      The standard format to read/store dataframes in ``iter`` is by providing
+      a generator of dataframes.
+    - ``dask`` is suitable for larger datasets. It can be used to work on datasets in
+      parallel or even in a cluster by using ``dask.distributed`` as the backend.
+      There are also ``dask.bag`` and ``dask.dataframe`` which support I/O operations
+      for the respective `dask`_ objects.
+
 After calling :func:`~kartothek.io.eager.store_dataframes_as_dataset`,
 a :class:`kartothek.core.dataset.DatasetMetadata` object is returned. 
 This class holds information about the structure and schema of the dataset.
 
 For this guide, two attributes that are noteworthy are ``tables`` and ``partitions``:
 
-- Each dataset has one or more tables, where each table represents a particular subset of
+- Each dataset has one or more ``tables``, where each table represents a particular subset of
   data, this data is stored as a collection of dataframes/files which have the same schema.
 - Data is written to storage in batches (for ``eager``, there is only a single batch),
   in this sense a batch is termed a ``partition`` in ``kartothek``.
-  Partitions are structurally identical to each other, each partition of a dataset has the
+  Partitions are structurally identical to each other, thus, each partition of a dataset has the
   same number of dataframes (one for each table) as the rest of partitions.
 
-.. admonition:: Passing multiple partitions to a dataset
+
+For each table, ``kartothek`` also tracks the schema of the columns.
+Unless specified explicitly on write, it is inferred from the passed data.
+On writing additional data to a dataset, we will also check that the schema
+of the new data matches the schema of the existing data.
+A ``ValueError`` will be thrown if there is a mismatch in the schema. For example,
+passing a list of dataframes with differing schemas and without table names to
+:func:`kartothek.io.eager.store_dataframes_as_dataset`.
+
+.. admonition:: Passing multiple partitions to a dataset during write/update
 
     To store multiple dataframes into a dataset (i.e. multiple `partitions`), it is possible
     to pass an iterator of dataframes, the exact format will depend on the I/O backend used.
@@ -107,17 +121,12 @@ of the created partition, ``kartothek`` has used the default table name
 ``table`` and generated a UUID for the partition name.
 
 .. ipython:: python
+    :okexcept:
+    :okwarning:
 
     dm.tables
     dm.partitions
 
-For each table, ``kartothek`` also tracks the schema of the columns.
-Unless specified explicitly on write, it is inferred from the passed data.
-On writing additional data to a dataset, we will also check that the schema
-of the new data matches the schema of the existing data.
-A ``ValueError`` will be thrown if there is a mismatch in the schema. For example,
-passing a list of dataframes with differing schemas and without table names to
-:func:`kartothek.io.eager.store_dataframes_as_dataset`.
 
 .. admonition:: A more complex example: multiple tables and partitions
 
@@ -185,7 +194,7 @@ passing a list of dataframes with differing schemas and without table names to
 Reading dataset from storage
 =============================
 
-After we have written the data, we want to read it back in again. For this we can
+After we have written the data, we may want to read it back in again. For this we can
 use :func:`kartothek.io.eager.read_table`. This method returns the complete
 table of the dataset as a pandas DataFrame (since there is only a single table in this
 example, it returns the entire dataset).
@@ -198,6 +207,26 @@ example, it returns the entire dataset).
 
     df = read_table("a_unique_dataset_identifier", store, table="table")
     df
+
+We could also read a dataframe iteratively, using 
+:func:`kartothek.io.iter.read_dataset_as_dataframes__iterator`. This would return a generator
+of dictionaries (one dictionary for each `partition`), where the keys of each dictionary
+represent the `tables` of the dataset.
+
+For example,
+
+.. ipython:: python
+    :okwarning:
+    :okexcept:
+
+    from kartothek.io.iter import read_dataset_as_dataframes__iterator
+
+    for part_n, df_dict in enumerate(
+            read_dataset_as_dataframes__iterator(dataset_uuid="two-tables", store=store_factory)
+        ):
+            print(f"Partition number: {part_n}")
+            for table, df in df_dict.items():
+                print(f"Table: {table}. Data: {df}")
 
 
 Updating existing datasets
@@ -213,12 +242,21 @@ To see how to update data in an existing dataset, lets create ``another_df`` and
 from ``eager`` to do so:
 
 .. ipython:: python
+    :okwarning:
+    :okexcept:
 
     from kartothek.io.eager import update_dataset_from_dataframes
-    from functools import partial
 
-    store_factory = partial(get_store_from_url, f"hfs://{dataset_dir.name}")
-    another_df = df.copy()
+    another_df = pd.DataFrame(
+        {
+            "A": 1.,
+            "B": pd.Timestamp("20130102"),
+            "C": pd.Series(1, index=list(range(4)), dtype="float32"),
+            "D": np.array([3] * 4, dtype="int32"),
+            "E": pd.Categorical(["test", "train", "test", "train"]),
+            "F": "foo",
+        }
+    )
 
     dm = update_dataset_from_dataframes(
         [another_df],
@@ -232,6 +270,8 @@ been added. What this translates to in terms of files added is that another
 ``parquet`` file has been added to the store.
 
 .. ipython:: python
+    :okexcept:
+    :okwarning:
 
     dm.partitions
     store.keys()
@@ -242,6 +282,8 @@ requires a factory method.
 Let's now see what happens when we read this data back:
 
 .. ipython:: python
+    :okexcept:
+    :okwarning:
 
     df_again = read_table("a_unique_dataset_identifier", store, table="table")
     df_again
@@ -263,6 +305,8 @@ individually updated.
 Updating an existing dataset with new table data:
 
 .. ipython:: python
+    :okwarning:
+    :okexcept:
 
     another_df2 = pd.DataFrame(
         {
@@ -594,3 +638,4 @@ file is removed.
 
 .. _simplekv.KeyValueStore interface: https://simplekv.readthedocs.io/en/latest/#simplekv.KeyValueStore
 .. _storefact: https://github.com/blue-yonder/storefact
+.. _dask: https://docs.dask.org/en/latest/
