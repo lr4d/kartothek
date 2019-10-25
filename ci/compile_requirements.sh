@@ -1,8 +1,8 @@
 #!/bin/bash
 set -xueo pipefail
 
-if [ -z ${PIP_COMPILE_ARGS+x} ]; then
-    PIP_COMPILE_ARGS=""
+if [ -z ${PIP_INSTALL_ARGS+x} ]; then
+    PIP_INSTALL_ARGS=""
 fi
 
 if [[ "${ARROW_NIGHTLY-0}" == 1 ]]; then
@@ -15,7 +15,7 @@ if [[ "${ARROW_NIGHTLY-0}" == 1 ]]; then
     ARROW_PATH="$PACKAGE_PATH/$ARROW_FILE"
     wget -O "$ARROW_PATH" "$ARROW_URL"
 
-    PIP_COMPILE_ARGS="$PIP_COMPILE_ARGS -P pyarrow==$ARROW_VERSION -f file://$PACKAGE_PATH"
+    PIP_INSTALL_ARGS="$PIP_INSTALL_ARGS -f file://$PACKAGE_PATH pyarrow"
 
     # we limit the upper version of pyarrow by default, so we need to remove this
     grep --invert-match pyarrow requirements.txt > requirements.txt.tmp
@@ -24,18 +24,10 @@ fi
 
 if [[ "${NUMFOCUS_NIGHTLY-0}" == 1 ]]; then
     # NumFOCUS nightly wheels, contains numpy and pandas
-    PIP_COMPILE_ARGS="$PIP_COMPILE_ARGS --pre -f https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com"
+   PRE_WHEELS="https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com"
+   PIP_INSTALL_ARGS="$PIP_INSTALL_ARGS --pre --upgrade --timeout=60 -f $PRE_WHEELS pandas numpy"
 fi
 
-pip-compile \
-    -v \
-    $PIP_COMPILE_ARGS \
-    -o requirements-pinned.txt \
-    requirements.txt
-
-pip-compile \
-    -v \
-    $PIP_COMPILE_ARGS \
-    -o test-requirements-pinned.txt \
-    requirements-pinned.txt \
-    test-requirements.txt
+if [[ "$PIP_INSTALL_ARGS" ]]; then
+    echo "$PIP_INSTALL_ARGS" > pip_install_args.txt
+fi
