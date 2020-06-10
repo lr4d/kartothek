@@ -158,6 +158,8 @@ class DatasetMetadataBase(CopyMixin):
     def storage_keys(uuid: str, store: KeyValueStore) -> List[str]:
         """
         Retrieve all keys that belong to the given dataset.
+        Note: this includes the keys of any files that are no longer actively being used by the dataset, until
+        a garbage collection of the dataset is called.
 
         Parameters
         ----------
