@@ -1,14 +1,14 @@
 import pandas as pd
 import pytest
 
-from kartothek.io.dask.dataframe import collect_dataset_statistics
+from kartothek.io.dask.dataframe import collect_dataset_metadata
 from kartothek.io.eager import store_dataframes_as_dataset
 from kartothek.serialization import ParquetSerializer
 
 
-def test_collect_dataset_statistics(store_session_factory, dataset):
-    df_stats = collect_dataset_statistics(
-        store=store_session_factory,
+def test_collect_dataset_metadata(store_session_factory, dataset):
+    df_stats = collect_dataset_metadata(
+        store_factory=store_session_factory,
         dataset_uuid="dataset_uuid",
         table_name="table",
         predicates=None,
@@ -28,11 +28,11 @@ def test_collect_dataset_statistics(store_session_factory, dataset):
     pd.testing.assert_frame_equal(actual, expected)
 
 
-def test_collect_dataset_statistics_predicates(store_session_factory, dataset):
+def test_collect_dataset_metadata_predicates(store_session_factory, dataset):
     predicates = [[("P", "==", 1)]]
 
-    df_stats = collect_dataset_statistics(
-        store=store_session_factory,
+    df_stats = collect_dataset_metadata(
+        store_factory=store_session_factory,
         dataset_uuid="dataset_uuid",
         table_name="table",
         predicates=predicates,
@@ -53,7 +53,7 @@ def test_collect_dataset_statistics_predicates(store_session_factory, dataset):
     pd.testing.assert_frame_equal(actual, expected)
 
 
-def test_collect_dataset_statistics_predicates_on_index(store_factory):
+def test_collect_dataset_metadata_predicates_on_index(store_factory):
     df = pd.DataFrame(
         data={"P": range(10), "L": ["a", "a", "a", "a", "a", "b", "b", "b", "b", "b"]}
     )
@@ -62,8 +62,8 @@ def test_collect_dataset_statistics_predicates_on_index(store_factory):
     )
     predicates = [[("L", "==", "b")]]
 
-    df_stats = collect_dataset_statistics(
-        store=store_factory,
+    df_stats = collect_dataset_metadata(
+        store_factory=store_factory,
         dataset_uuid="dataset_uuid",
         table_name="table",
         predicates=predicates,
@@ -85,7 +85,7 @@ def test_collect_dataset_statistics_predicates_on_index(store_factory):
     pd.testing.assert_frame_equal(actual, expected)
 
 
-def test_collect_dataset_statistics_predicates_row_group_size(store_factory):
+def test_collect_dataset_metadata_predicates_row_group_size(store_factory):
     ps = ParquetSerializer(chunk_size=2)
     df = pd.DataFrame(
         data={"P": range(10), "L": ["a", "a", "a", "a", "a", "b", "b", "b", "b", "b"]}
@@ -100,8 +100,8 @@ def test_collect_dataset_statistics_predicates_row_group_size(store_factory):
 
     predicates = [[("L", "==", "a")]]
 
-    df_stats = collect_dataset_statistics(
-        store=store_factory,
+    df_stats = collect_dataset_metadata(
+        store_factory=store_factory,
         dataset_uuid="dataset_uuid",
         table_name="table",
         predicates=predicates,
@@ -125,9 +125,9 @@ def test_collect_dataset_statistics_predicates_row_group_size(store_factory):
     pd.testing.assert_frame_equal(actual, expected)
 
 
-def test_collect_dataset_statistics_frac_smoke(store_session_factory, dataset):
-    df_stats = collect_dataset_statistics(
-        store=store_session_factory,
+def test_collect_dataset_metadata_frac_smoke(store_session_factory, dataset):
+    df_stats = collect_dataset_metadata(
+        store_factory=store_session_factory,
         dataset_uuid="dataset_uuid",
         table_name="table",
         frac=0.8,
@@ -145,11 +145,53 @@ def test_collect_dataset_statistics_frac_smoke(store_session_factory, dataset):
     assert set(df_stats.columns) == columns
 
 
-def test_collect_dataset_statistics_frac_too_small(store_session_factory, dataset):
+def test_collect_dataset_metadata_empty_dataset(store_factory):
+    from kartothek.io_components.write import store_dataset_from_partitions
+    from kartothek.io_components.metapartition import MetaPartition
+
+    mp = MetaPartition(label="cluster_1")
+    store_dataset_from_partitions(partition_list=[mp], store=store_factory, dataset_uuid="dataset_uuid")
+
+    # TODO FIXME this raises, but should instead return an empty df
+    df_stats = collect_dataset_metadata(
+        store_factory=store_factory,
+        dataset_uuid="dataset_uuid",
+        table_name="table",
+    )
+    # TODO assert all columns are in there
+    # TODO assert that the returned df is empty
+
+def test_collect_dataset_metadata_empty_dataset_2(store_factory):
+    from kartothek.io_components.write import store_dataset_from_partitions
+    from kartothek.io_components.metapartition import MetaPartition
+    from kartothek.io.eager import store_dataframes_as_dataset
+    from kartothek.io.eager import update_dataset_from_dataframes
+
+    df = pd.DataFrame(data={"a": [1, 1, 1, 1], "b": [1, 1, 2, 2]})
+
+    store_dataframes_as_dataset(store=store_factory, dataset_uuid="dataset_uuid", dfs=[df])
+    # TODO FIXME this raises, but should instead return an empty df
+    df_stats = collect_dataset_metadata(
+        store_factory=store_factory,
+        dataset_uuid="dataset_uuid",
+        table_name="table",
+    )
+
+
+
+def test_collect_dataset_metadata_invalid_frac(store_session_factory, dataset):
     with pytest.raises(ValueError):
-        collect_dataset_statistics(
-            store=store_session_factory,
+        df_stats = collect_dataset_metadata(
+            store_factory=store_session_factory,
             dataset_uuid="dataset_uuid",
             table_name="table",
-            frac=0.05,
+            frac=1.1,
+        )
+
+    with pytest.raises(ValueError):
+        df_stats = collect_dataset_metadata(
+            store_factory=store_session_factory,
+            dataset_uuid="dataset_uuid",
+            table_name="table",
+            frac=0.0,
         )

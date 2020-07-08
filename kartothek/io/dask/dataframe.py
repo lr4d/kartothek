@@ -25,6 +25,9 @@ from kartothek.io_components.utils import (
 from ._update import update_dask_partitions_one_to_one, update_dask_partitions_shuffle
 from ._utils import _maybe_get_categoricals_from_index
 from .delayed import read_table_as_delayed
+import logging
+
+_logger = logging.getLogger()
 
 
 @default_docs
@@ -306,15 +309,22 @@ def update_dataset_from_ddf(
     )
 
 
-def collect_dataset_statistics(
-    store, dataset_uuid, table_name, predicates=None, frac=0.3, factory=None,
+def collect_dataset_metadata(
+    store_factory, dataset_uuid, table_name, predicates=None, frac=1.0, factory=None,
 ):
     """
-    Retrieve some statistics, maybe even plot them, generate a report...?
+    Collect parquet metadata of the dataset. The `frac` parameter can be used to select a subset of the data.
+
+    .. warning::
+      If the size of the partitions is not evenly distributed, e.g. some partitions might be larger than others,
+      the metadata returned is not a good approximation for the whole dataset metadata.
+    .. warning::
+      Using the `frac` parameter is not encouraged for a small number of total partitions.
+
 
     Parameters
     ----------
-    store
+    store_factory
       A factory function providing a KeyValueStore
     dataset_uuid
       The dataset's unique identifier
@@ -328,13 +338,20 @@ def collect_dataset_statistics(
           The evaluation of the predicates therefore will therefore only return an approximate result.
 
     frac
-      Fraction of the data to use for gathering statistics. `frac == 1` will use the whole dataset.
+      Fraction of the total number of partitions to use for gathering statistics. `frac == 1.0` will use all partitions.
     factory
        A DatasetFactory holding the store and UUID to the source dataset.
 
     Returns
     -------
-    A dask.dataframe containing information about dataset statistics.
+    A dask.dataframe containing the following information about dataset statistics:
+       * `partition_label`: File name of the parquet file, unique to each physical partition.
+       * `row_group_id`: Index of the row groups within one parquet file.
+       * `row_group_byte_size`: Byte size of the data within one row group.
+       * `number_rows_total`: Total number of rows in one parquet file.
+       * `number_row_groups`: Number of row groups in one parquet file.
+       * `serialized_size`: Serialized size of the parquet file.
+       * `number_rows_per_row_group`: Number of rows per row group.
 
     Raises
     ------
@@ -342,28 +359,42 @@ def collect_dataset_statistics(
       If no metadata could be retrieved, raise an error.
 
     """
+    if frac <= 0.0 or frac < 1.0:
+        raise ValueError(
+            f"Invalid value for parameter `frac`: {frac}."
+            "Please make sure to provide a value larger than 0.0 and smaller than or equal to 1.0 ."
+        )
     dataset_factory = _ensure_factory(
         dataset_uuid=dataset_uuid,
-        store=store,
+        store=store_factory,
         factory=factory,
         load_dataset_metadata=False,
     )
-    mp_iterator = random_sample(
-        frac,
-        dispatch_metapartitions_from_factory(dataset_factory, predicates=predicates),
-    )
+
+    mp_iterator = dispatch_metapartitions_from_factory(dataset_factory, predicates=predicates)
+    # TODO ensure that even with sampling at least one metapartition is returned
+    # TODO ensure that the edge case of no metapartition is included
+
+    try:
+        # Ensure at least one metapartition is included
+        mp = next(mp_iterator)
+        df = dask.delayed(MetaPartition.get_parquet_metadata)(mp, store=dataset_factory.store_factory, table_name=table_name)
+    except StopIteration:
+        # empty dataset
+        # TODO Do not raise, but instead return an empty df
+        # TODO _logger.warning(f"Empty dataset {dataset_uuid}, can't retrieve any metadata.")
+
+        raise ValueError(f"Empty dataset {dataset_uuid}, can't retrieve metadata.")
+
     dfs = [
         dask.delayed(MetaPartition.get_parquet_metadata)(
-            mp, store=dataset_factory.store_factory, table_name=table_name
-        )
-        for mp in mp_iterator
+            mp, store=dataset_factory.store_factory, table_name=table_name,
+        ) for mp in random_sample(frac, mp_iterator)
     ]
-    if not dfs:
-        raise ValueError(
-            f"Could not retrieve metadata for dataset {dataset_uuid}. Perhaps the value {frac} for the parameter `frac` is too small?"
-        )
+    dfs = [df, *dfs]
 
     df = dd.from_delayed(dfs)
     df = df.compute()
     df.reset_index(inplace=True, drop=True)
     return df
+

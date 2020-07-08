@@ -182,6 +182,15 @@ class MetaPartition(Iterable):
     Wrapper for kartothek partition which includes additional information
     about the parent dataset
     """
+    _METADATA_COLUMNS = (
+        "partition_label",
+        "row_group_id",
+        "row_group_byte_size",
+        "number_rows_total",
+        "number_row_groups",
+        "serialized_size",
+        "number_rows_per_row_group",
+    )
 
     def __init__(
         self,
@@ -1573,8 +1582,9 @@ class MetaPartition(Iterable):
             store = store()
 
         if self.files:
-            fd = store.open(self.files[table_name])
-            pq_metadata = pa.parquet.ParquetFile(fd).metadata
+            with store.open(self.files[table_name]) as fd:
+                pq_metadata = pa.parquet.ParquetFile(fd).metadata
+            # TODO rethink the columns as class variable, does that make sense?
             data = {
                 "partition_label": self.label,
                 "number_rows_total": pq_metadata.num_rows,
@@ -1594,20 +1604,13 @@ class MetaPartition(Iterable):
             )
             return pd.DataFrame(
                 data=data,
-                columns=[
-                    "partition_label",
-                    "row_group_id",
-                    "row_group_byte_size",
-                    "number_rows_total",
-                    "number_row_groups",
-                    "serialized_size",
-                    "number_rows_per_row_group",
-                ],
+                columns=self._METADATA_COLUMNS,
             )
 
         else:
             raise RuntimeError(
-                "This should not happen: MetaPartition with no data associated."
+                "`MetaPartition.get_parquet_metadata` requires the `MetaPartition` to have files in it."
+                "Make sure to store the data you have in memory first before calling this function."
             )
 
 
