@@ -2,6 +2,10 @@ import dask
 import dask.dataframe as dd
 import numpy as np
 from toolz.itertoolz import random_sample
+import random
+import warnings
+
+import pandas as pd
 
 from kartothek.core.common_metadata import empty_dataframe_from_schema
 from kartothek.core.docs import default_docs
@@ -371,28 +375,28 @@ def collect_dataset_metadata(
         load_dataset_metadata=False,
     )
 
-    mp_iterator = dispatch_metapartitions_from_factory(dataset_factory, predicates=predicates)
-    # TODO ensure that even with sampling at least one metapartition is returned
-    # TODO ensure that the edge case of no metapartition is included
-
-    mps = list(dispatch_metapartitions_from_factory(dataset_factory, predicates=predicates))
-
-
+    mps = list(
+        dispatch_metapartitions_from_factory(dataset_factory, predicates=predicates)
+    )
     if not mps:
         # empty dataset
-        import warnings
-        warnings.warn(f"Can't retrieve metadata for empty dataset (dataset_uuid=`{dataset_uuid})")
-        import pandas as pd
+        warnings.warn(
+            f"Can't retrieve metadata for empty dataset (dataset_uuid=`{dataset_uuid})"
+        )
         return pd.DataFrame()  # TODO: return empty dataframe with proper schema
 
-    # TODO: get rid of `random_sample`, use precise sampling
-    dfs = [
-        dask.delayed(MetaPartition.get_parquet_metadata)(
-            mp, store=dataset_factory.store_factory, table_name=table_name,
-        ) for mp in random_sample(frac, mp_iterator)
-    ]
-    df = dd.from_delayed(dfs)
+    random.shuffle(mps)
+    # ensure that even with sampling at least one metapartition is returned
+    cutoff_index = max(1, int(len(mps) * frac))
+    mps = mps[:cutoff_index]
+    df = dd.from_delayed(
+        [
+            dask.delayed(MetaPartition.get_parquet_metadata)(
+                mp, store=dataset_factory.store_factory, table_name=table_name,
+            )
+            for mp in mps
+        ]
+    )
     df = df.compute()
     df.reset_index(inplace=True, drop=True)
     return df
-
