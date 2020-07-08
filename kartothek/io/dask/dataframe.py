@@ -359,7 +359,7 @@ def collect_dataset_metadata(
       If no metadata could be retrieved, raise an error.
 
     """
-    if frac <= 0.0 or frac < 1.0:
+    if not 0.0 < frac <= 1.0:
         raise ValueError(
             f"Invalid value for parameter `frac`: {frac}."
             "Please make sure to provide a value larger than 0.0 and smaller than or equal to 1.0 ."
