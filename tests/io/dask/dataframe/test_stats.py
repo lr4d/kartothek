@@ -3,6 +3,7 @@ import pytest
 
 from kartothek.io.dask.dataframe import collect_dataset_metadata
 from kartothek.io.eager import store_dataframes_as_dataset
+from kartothek.io.eager import update_dataset_from_dataframes
 from kartothek.serialization import ParquetSerializer
 
 
@@ -145,38 +146,41 @@ def test_collect_dataset_metadata_frac_smoke(store_session_factory, dataset):
     assert set(df_stats.columns) == columns
 
 
-def test_collect_dataset_metadata_empty_dataset(store_factory):
+def test_collect_dataset_metadata_empty_dataset_mp(store_factory):
     from kartothek.io_components.write import store_dataset_from_partitions
     from kartothek.io_components.metapartition import MetaPartition
 
     mp = MetaPartition(label="cluster_1")
-    store_dataset_from_partitions(partition_list=[mp], store=store_factory, dataset_uuid="dataset_uuid")
+    # XXX: That this works is a bug, assume it's not possible for there to be a "dispatched" metapartition w/o data?
+    store_dataset_from_partitions(
+        partition_list=[mp], store=store_factory, dataset_uuid="dataset_uuid"
+    )
 
     # TODO FIXME this raises, but should instead return an empty df
-    df_stats = collect_dataset_metadata(
-        store_factory=store_factory,
-        dataset_uuid="dataset_uuid",
-        table_name="table",
-    )
+    df_stats = collect_dataset_metadata(store_factory=store_factory, dataset_uuid="dataset_uuid", table_name="table")
     # TODO assert all columns are in there
     # TODO assert that the returned df is empty
 
-def test_collect_dataset_metadata_empty_dataset_2(store_factory):
-    from kartothek.io_components.write import store_dataset_from_partitions
-    from kartothek.io_components.metapartition import MetaPartition
-    from kartothek.io.eager import store_dataframes_as_dataset
-    from kartothek.io.eager import update_dataset_from_dataframes
 
-    df = pd.DataFrame(data={"a": [1, 1, 1, 1], "b": [1, 1, 2, 2]})
-
-    store_dataframes_as_dataset(store=store_factory, dataset_uuid="dataset_uuid", dfs=[df])
-    # TODO FIXME this raises, but should instead return an empty df
-    df_stats = collect_dataset_metadata(
-        store_factory=store_factory,
-        dataset_uuid="dataset_uuid",
-        table_name="table",
+def test_collect_dataset_metadata_empty_dataset(store_factory):
+    df = pd.DataFrame(data={"A": [1, 1, 1, 1], "b": [1, 1, 2, 2]})
+    store_dataframes_as_dataset(
+        store=store_factory, dataset_uuid="dataset_uuid", dfs=[df], partition_on=["A"]
+    )
+    # Remove all partitions of the dataset
+    update_dataset_from_dataframes(
+        [], store=store_factory, dataset_uuid="dataset_uuid", delete_scope=[{"A": 1}]
     )
 
+    with pytest.warns(
+        UserWarning, match="^Can't retrieve metadata for empty dataset.*"
+    ):
+        df_stats = collect_dataset_metadata(
+            store_factory=store_factory,
+            dataset_uuid="dataset_uuid",
+            table_name="table",
+        )
+    assert df_stats.empty
 
 
 def test_collect_dataset_metadata_invalid_frac(store_session_factory, dataset):
