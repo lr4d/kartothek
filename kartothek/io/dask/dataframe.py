@@ -375,23 +375,22 @@ def collect_dataset_metadata(
     # TODO ensure that even with sampling at least one metapartition is returned
     # TODO ensure that the edge case of no metapartition is included
 
-    try:
-        # Ensure at least one metapartition is included
-        mp = next(mp_iterator)
-        df = dask.delayed(MetaPartition.get_parquet_metadata)(mp, store=dataset_factory.store_factory, table_name=table_name)
-    except StopIteration:
+    mps = list(dispatch_metapartitions_from_factory(dataset_factory, predicates=predicates))
+
+
+    if not mps:
         # empty dataset
         import warnings
         warnings.warn(f"Can't retrieve metadata for empty dataset (dataset_uuid=`{dataset_uuid})")
         import pandas as pd
         return pd.DataFrame()  # TODO: return empty dataframe with proper schema
+
+    # TODO: get rid of `random_sample`, use precise sampling
     dfs = [
         dask.delayed(MetaPartition.get_parquet_metadata)(
             mp, store=dataset_factory.store_factory, table_name=table_name,
         ) for mp in random_sample(frac, mp_iterator)
     ]
-    dfs = [df, *dfs]
-
     df = dd.from_delayed(dfs)
     df = df.compute()
     df.reset_index(inplace=True, drop=True)
