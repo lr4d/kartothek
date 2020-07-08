@@ -344,7 +344,7 @@ def collect_dataset_metadata(
 
     Returns
     -------
-    A dask.dataframe containing the following information about dataset statistics:
+    A pandas.DataFrame containing the following information about dataset statistics:
        * `partition_label`: File name of the parquet file, unique to each physical partition.
        * `row_group_id`: Index of the row groups within one parquet file.
        * `row_group_byte_size`: Byte size of the data within one row group.
@@ -359,7 +359,7 @@ def collect_dataset_metadata(
       If no metadata could be retrieved, raise an error.
 
     """
-    if frac <= 0.0 or frac < 1.0:
+    if not 0.0 < frac <= 1.0:
         raise ValueError(
             f"Invalid value for parameter `frac`: {frac}."
             "Please make sure to provide a value larger than 0.0 and smaller than or equal to 1.0 ."
@@ -381,11 +381,10 @@ def collect_dataset_metadata(
         df = dask.delayed(MetaPartition.get_parquet_metadata)(mp, store=dataset_factory.store_factory, table_name=table_name)
     except StopIteration:
         # empty dataset
-        # TODO Do not raise, but instead return an empty df
-        # TODO _logger.warning(f"Empty dataset {dataset_uuid}, can't retrieve any metadata.")
-
-        raise ValueError(f"Empty dataset {dataset_uuid}, can't retrieve metadata.")
-
+        import warnings
+        warnings.warn(f"Can't retrieve metadata for empty dataset (dataset_uuid=`{dataset_uuid})")
+        import pandas as pd
+        return pd.DataFrame()  # TODO: return empty dataframe with proper schema
     dfs = [
         dask.delayed(MetaPartition.get_parquet_metadata)(
             mp, store=dataset_factory.store_factory, table_name=table_name,
