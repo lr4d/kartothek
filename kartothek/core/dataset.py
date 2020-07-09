@@ -602,7 +602,8 @@ class DatasetMetadata(DatasetMetadataBase):
         to have them resolved automatically.
         """
 
-        # Use the builder class for reconstruction to have a single point for metadata version changes
+        # Use the builder class for reconstruction to have a single point for
+        # metadata version changes
         builder = DatasetMetadataBuilder(
             uuid=dct[naming.UUID_KEY],
             metadata_version=dct[naming.METADATA_VERSION_KEY],
@@ -862,7 +863,8 @@ class DatasetMetadataBuilder(CopyMixin):
         """
 
         if column != index.column:
-            # TODO Deprecate the column argument and take the column name directly from the index.
+            # TODO Deprecate the column argument and take the column name directly
+            # from the index.
             raise RuntimeError(
                 "The supplied index is not compatible with the supplied index."
             )

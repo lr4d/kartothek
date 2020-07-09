@@ -270,7 +270,8 @@ def test_store_dataframes_as_dataset_empty_dataframe(
     df_empty = df_all_types.drop(0)
 
     # Store a second table with shared columns. All shared columns must be of the same type
-    # This may fail in the presence of empty partitions if the schema validation doesn't account for it
+    # This may fail in the presence of empty partitions if the schema
+    # validation doesn't account for it
     df_shared_cols = df_all_types.loc[:, df_all_types.columns[:3]]
     df_shared_cols["different_col"] = "a"
 

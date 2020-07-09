@@ -129,7 +129,8 @@ class BlockBuffer(io.BufferedIOBase):
         block = start // self._blocksize
         offset = start % self._blocksize
 
-        # iterate over blocks in range and figure out long sub-ranges of blocks to fetch at once
+        # iterate over blocks in range and figure out long sub-ranges of blocks to
+        # fetch at once
         done = -offset
         to_fetch_start = None
         to_fetch_n = None
@@ -144,7 +145,8 @@ class BlockBuffer(io.BufferedIOBase):
                     to_fetch_start = None
                     to_fetch_n = None
             else:
-                # current block is missing, do we already have a block range to append to?
+                # current block is missing, do we already have a block range to append
+                # to?
                 if to_fetch_start is None:
                     # no block range open, create a new one
                     to_fetch_start = block

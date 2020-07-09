@@ -512,7 +512,8 @@ def test_sort_partitions_by(
         sort_partitions_by=["TARGET"],
     )
 
-    # Check that the `sort_partitions_by` column is indeed sorted monotonically among partitions
+    # Check that the `sort_partitions_by` column is indeed sorted
+    # monotonically among partitions
     for label_df_tupl in read_dataset_as_dataframes__iterator(
         store=store_factory, dataset_uuid="dataset_uuid"
     ):

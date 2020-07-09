@@ -322,7 +322,8 @@ def store_dataframes_as_dataset__iter(
             store=store, dataset_uuid=dataset_uuid, df_serializer=df_serializer
         )
 
-        # Add `kartothek.io_components.metapartition.MetaPartition` object to list to track partitions
+        # Add `kartothek.io_components.metapartition.MetaPartition` object to list
+        # to track partitions
         new_partitions.append(mp)
 
     # Store metadata and return `kartothek.DatasetMetadata` object

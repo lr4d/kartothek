@@ -188,7 +188,8 @@ def default_docs(func):
     A decorator which automatically takes care of default parameter
     documentation for common pipeline factory parameters
     """
-    # TODO (Kshitij68) Bug: The parameters are not come in the same order as listed in the function. For example in `store_dataframes_as_dataset`
+    # TODO (Kshitij68) Bug: The parameters are not come in the same order as
+    # listed in the function. For example in `store_dataframes_as_dataset`
     docs = func.__doc__
     new_docs = ""
     signature = inspect.signature(func)
@@ -220,7 +221,8 @@ def default_docs(func):
                         whitespaces = " " * whitespaces_to_add
                         doc = whitespaces + doc
                         doc = doc.replace("\n", "\n" + whitespaces).rstrip() + "\n"
-                        # We are checking if the entire docstring associated with the function is present or not
+                        # We are checking if the entire docstring associated with the
+                        # function is present or not
                         if doc not in docs:
                             artificial_param_docs.append(doc)
                 new_docs += "".join(artificial_param_docs)

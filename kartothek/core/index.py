@@ -90,7 +90,8 @@ class IndexBase(CopyMixin):
         if index_dct is not None:
             self._index_dct_available = True
             if normalize_dtype:
-                # index_dct may be from an untrusted or weakly typed source, so we need to normalize and fuse values
+                # index_dct may be from an untrusted or weakly typed source, so we need
+                # to normalize and fuse values
                 self.index_dct = {}
                 n_collisions = 0
                 for value, partitions in index_dct.items():
@@ -749,7 +750,8 @@ def merge_indices(
     if not list_of_indices:
         return final_indices
 
-    # shortcut can only be applied to Index object since the dict path needs the label in the passed tuple
+    # shortcut can only be applied to Index object since the dict path needs
+    # the label in the passed tuple
     if len(list_of_indices) == 1:
         return list_of_indices[0]
     elif len(list_of_indices) > 2:
@@ -874,7 +876,8 @@ def _index_dct_to_table(index_dct: IndexDictType, column: str, dtype: pa.DataTyp
         keys = np.asarray(list(keys_it))
     else:
         if pa.types.is_unsigned_integer(dtype):
-            # numpy might create object ndarrays here, which pyarrow might (for some reason) convert fo floats
+            # numpy might create object ndarrays here, which pyarrow might (for some
+            # reason) convert fo floats
             keys = list(keys_it)
         elif (
             dtype == pa.timestamp("ns")
@@ -892,7 +895,8 @@ def _index_dct_to_table(index_dct: IndexDictType, column: str, dtype: pa.DataTyp
     # But the inferred type is not enough to hold np.uint64. Until this is fixed in
     # upstream Arrow, we have to retain the following line
     if not index_dct:
-        # the np.array dtype will be double which arrow cannot convert to the target type, so use an empty list instead
+        # the np.array dtype will be double which arrow cannot convert to the
+        # target type, so use an empty list instead
         labeled_array = pa.array([], type=dtype)
     else:
         labeled_array = pa.array(keys, type=dtype)

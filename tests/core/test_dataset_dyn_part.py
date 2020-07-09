@@ -262,7 +262,8 @@ def test_dynamic_partitions_with_garbage(store):
         "core",
     )
 
-    # the following files are garbage and should not interfere with the indices and/or partitions
+    # the following files are garbage and should not interfere with the
+    # indices and/or partitions
     for suffix in ["", ".json", ".msgpack", ".my_own_file_format"]:
         store.put("this_should_not_exist{}".format(suffix), b"ignore me")
         store.put(

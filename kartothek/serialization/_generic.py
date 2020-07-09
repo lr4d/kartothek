@@ -321,7 +321,8 @@ def _handle_categorical_data(array_like, require_ordered):
 
 def _handle_null_arrays(array_like, value_dtype):
     # NULL types might not be preserved well, so try to cast floats (pandas default type) to the value type
-    # Determine the type using the `kind` interface since this is common for a numpy array, pandas series and pandas extension arrays
+    # Determine the type using the `kind` interface since this is common for a
+    # numpy array, pandas series and pandas extension arrays
     if array_like.dtype.kind == "f" and np.isnan(array_like).all():
         if array_like.dtype.kind != value_dtype.kind:
             array_like = array_like.astype(value_dtype)

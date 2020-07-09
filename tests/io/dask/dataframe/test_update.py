@@ -36,7 +36,8 @@ def test_hash_bucket(col, num_buckets=5):
     hashed = _hash_bucket(df, [col], num_buckets)
     assert (hashed.groupby(col).agg({_KTK_HASH_BUCKET: "nunique"}) == 1).all().all()
 
-    # Check that hashing is consistent for small dataframe sizes (where df.col.nunique() < num_buckets)
+    # Check that hashing is consistent for small dataframe sizes (where
+    # df.col.nunique() < num_buckets)
     df_sample = df.iloc[[0, 7]]
     hashed_sample = _hash_bucket(df_sample, [col], num_buckets)
     expected = hashed.loc[df_sample.index]
@@ -66,7 +67,8 @@ def _unwrap_partition(part):
 
 
 def _update_dataset(partitions, *args, **kwargs):
-    # TODO: fix the parsing below to adapt for all supported formats (see: parse_input_to_metapartition)
+    # TODO: fix the parsing below to adapt for all supported formats (see:
+    # parse_input_to_metapartition)
     if any(partitions):
         table_name = next(iter(dict(partitions[0]["data"]).keys()))
         delayed_partitions = [

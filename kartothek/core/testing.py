@@ -42,7 +42,8 @@ def get_dataframe_alltypes():
         }
     )
 
-    return pd.concat([not_nested, nested_types], axis=1).reset_index(drop=True).sort_index(axis=1)
+    return pd.concat([not_nested, nested_types], axis=1).reset_index(
+        drop=True).sort_index(axis=1)
     # fmt: on
 
 
@@ -64,7 +65,8 @@ def get_dataframe_not_nested():
             "datetime64": pd.Series(["2018-01-01"], dtype="datetime64[ns]"),
             "unicode": pd.Series(["Ö"], dtype=np.unicode),
             "null": pd.Series([None], dtype=object),
-            # Adding a byte type with value as byte sequence which can not be encoded as UTF8
+            # Adding a byte type with value as byte sequence which can not be encoded
+            # as UTF8
             "byte": pd.Series([gen_uuid_object().bytes], dtype=object),
         }
     ).sort_index(axis=1)

@@ -85,7 +85,8 @@ def _initialize_store_for_metapartition(method, method_args, method_kwargs):
 
             if store_variable in args:
                 ix = args.index(store_variable)
-                # reduce index since the argspec and method_args start counting differently due to self
+                # reduce index since the argspec and method_args start counting
+                # differently due to self
                 ix -= 1
                 instantiated_store = _instantiate_store(method_args[ix])
                 new_args = []
@@ -369,7 +370,8 @@ class MetaPartition(Iterable):
             ):
                 if mp_self == mp_other:
                     continue
-                # If a single metapartition does not match, the whole object is considered different
+                # If a single metapartition does not match, the whole object is
+                # considered different
                 return False
             return True
 
@@ -665,7 +667,8 @@ class MetaPartition(Iterable):
 
         LOGGER.debug("Loading internal dataframes of %s", self.label)
         if len(self.files) == 0:
-            # This used to raise, but the specs do not require this, so simply do a no op
+            # This used to raise, but the specs do not require this, so simply do a no
+            # op
             LOGGER.debug("Partition %s is empty and has not tables/files", self.label)
             return self
         new_data = copy(self.data)
@@ -690,7 +693,8 @@ class MetaPartition(Iterable):
 
             self._load_table_meta(dataset_uuid=dataset_uuid, table=table, store=store)
 
-            # Filter predicates that would apply to this partition and remove the partition columns
+            # Filter predicates that would apply to this partition and remove the
+            # partition columns
             if predicates:
                 # Check if there are predicates that match to the partition columns.
                 # For these we need to check if the partition columns already falsify
@@ -731,7 +735,8 @@ class MetaPartition(Iterable):
                 date_as_object=dates_as_object,
             )
             LOGGER.debug("Loaded dataframe %s in %s seconds.", key, time.time() - start)
-            # Metadata version >=4 parse the index columns and add them back to the dataframe
+            # Metadata version >=4 parse the index columns and add them back to the
+            # dataframe
 
             df = self._reconstruct_index_columns(
                 df=df,
@@ -805,7 +810,8 @@ class MetaPartition(Iterable):
             df = df.reindex(columns=cleaned_original_columns, copy=False)
 
         for pos, (primary_key, value) in enumerate(key_indices):
-            # If there are predicates, don't reconstruct the index if it wasn't requested
+            # If there are predicates, don't reconstruct the index if it wasn't
+            # requested
             if columns is not None and primary_key not in columns:
                 continue
 

@@ -167,7 +167,8 @@ class ParquetSerializer(DataFrameSerializer):
                     else:
                         table = pa.concat_tables(tables)
                 else:
-                    # ARROW-5139 Column projection with empty columns returns a table w/out index
+                    # ARROW-5139 Column projection with empty columns returns a table
+                    # w/out index
                     if columns == []:
                         # Create an arrow table with expected index length.
                         df = (
@@ -179,7 +180,8 @@ class ParquetSerializer(DataFrameSerializer):
                             pd.RangeIndex(start=0, stop=parquet_file.metadata.num_rows)
                         )
                         df = pd.DataFrame(df, index=index)
-                        # convert back to table to keep downstream code untouched by this patch
+                        # convert back to table to keep downstream code untouched by
+                        # this patch
                         table = pa.Table.from_pandas(df)
                     else:
                         table = pq.read_pandas(reader, columns=columns)
@@ -431,12 +433,14 @@ def _predicate_accepts(predicate, row_meta, arrow_schema, parquet_reader):
         min_value = min_value.decode("utf-8")
         max_value = max_value.decode("utf-8")
 
-    # integer overflow protection since statistics are stored as signed integer, see ARROW-5166
+    # integer overflow protection since statistics are stored as signed
+    # integer, see ARROW-5166
     if pa.types.is_integer(pa_type) and (max_value < min_value):
         return True
 
     if pa.types.is_timestamp(pa_type) and ARROW_LARGER_EQ_0150:
-        # timestamps in the parquet statistic might be of type datetime.datetime, which is not compatible w/ numpy
+        # timestamps in the parquet statistic might be of type datetime.datetime,
+        # which is not compatible w/ numpy
         min_value = np.datetime64(min_value)
         max_value = np.datetime64(max_value)
 

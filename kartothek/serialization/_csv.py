@@ -47,7 +47,8 @@ class CsvSerializer(DataFrameSerializer):
             compression = None
 
         if (not columns) and (columns is not None):
-            # pd.read_csv does not seem to support proper reads w/o columns (it returns a DF w/o any row)
+            # pd.read_csv does not seem to support proper reads w/o columns (it
+            # returns a DF w/o any row)
             columns = None
             project_to_no_cols = True
         else:

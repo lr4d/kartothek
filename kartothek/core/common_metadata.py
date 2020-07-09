@@ -490,7 +490,8 @@ def _determine_schemas_to_compare(schemas, ignore_pandas):
             null_cols_in_reference = null_columns
         # If there is no clear subset available elect the schema with the least null columns as `reference`.
         # Iterate over the null columns of `reference` and replace it with a non-null field of the `current`
-        # schema which recovers the loop invariant (null columns of `reference` is subset of `current`)
+        # schema which recovers the loop invariant (null columns of `reference` is
+        # subset of `current`)
         else:
             if len(null_columns) < len(null_cols_in_reference):
                 reference, current = current, reference
@@ -614,7 +615,8 @@ def validate_compatible(schemas, ignore_pandas=False):
     )
 
     for current, null_columns in schemas_to_evaluate:
-        # Compare each schema to the reference but ignore the null_cols and the Pandas schema information.
+        # Compare each schema to the reference but ignore the null_cols and the
+        # Pandas schema information.
         reference_to_compare = _strip_columns_from_schema(
             reference, null_columns
         ).remove_metadata()

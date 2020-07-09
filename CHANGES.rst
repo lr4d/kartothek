@@ -2,6 +2,18 @@
 Changelog
 =========
 
+Version 4.0.0 (2020-07-XX)
+===========================
+
+New functionality
+^^^^^^^^^^^^
+* Introduction of ``cube`` Functionality which is made by multiple Kartothek datasets.
+* Introduction of Cube - Basic Features like Build, Extend, Query, Remove(Partitions),
+   Delete (can delete entire datasets/cube), API, CLI, Core and IO features.
+* Introduction of Cube - Advanced Features like Multi-Dataset with Single Table, Table/Dataset Discovery by Implicit Existence,
+  Seed based join system.
+
+
 Version 3.10.0 (2020-07-02)
 ===========================
 

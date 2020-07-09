@@ -1,6 +1,9 @@
 # Test Code Dependencies
 distributed
 pytz
+setuptools-scm
+cloudpickle
+freezegun
 
 # Test Framework
 hypothesis

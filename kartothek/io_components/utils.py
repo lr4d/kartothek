@@ -124,12 +124,14 @@ def _ensure_compatible_indices(dataset, secondary_indices):
     else:
         # We return `False` if there is no dataset in storage and `secondary_indices` is undefined
         # (`secondary_indices` is normalized to `[]` by default).
-        # In consequence, `parse_input_to_metapartition` will not check indices at the partition level.
+        # In consequence, `parse_input_to_metapartition` will not check indices at
+        # the partition level.
         return secondary_indices or False
 
 
 def _ensure_valid_indices(mp_indices, secondary_indices=None, data=None):
-    # TODO (Kshitij68): Behavior is closely matches `_ensure_compatible_indices`. Refactoring can prove to be helpful
+    # TODO (Kshitij68): Behavior is closely matches
+    # `_ensure_compatible_indices`. Refactoring can prove to be helpful
     if data:
         for table_name in data:
             for index in mp_indices.keys():

@@ -96,8 +96,7 @@ def read_dataset_as_ddf(
         dispatch_by=dask_index_on if dask_index_on else dispatch_by,
     )
     if dask_index_on:
-        divisions = ds_factory.indices[dask_index_on].observed_values()
-        divisions.sort()
+        divisions = sorted(ds_factory.indices[dask_index_on].observed_values())
         divisions = list(divisions)
         divisions.append(divisions[-1])
         return dd.from_delayed(

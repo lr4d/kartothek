@@ -930,7 +930,8 @@ def test_partition_on_roundtrip(store):
     new_mp = mp.partition_on(["test"])
     new_mp = new_mp.store_dataframes(store=store, dataset_uuid="some_uuid")
     store_schema_metadata(new_mp.table_meta["core"], "some_uuid", store, "core")
-    # Test immediately after dropping and later once with new metapartition to check table meta reloading
+    # Test immediately after dropping and later once with new metapartition to
+    # check table meta reloading
     new_mp = new_mp.load_dataframes(store=store)
     assert len(new_mp.metapartitions) == 3
     dfs = []
@@ -1341,7 +1342,8 @@ def test_reconstruct_index_empty_df(store, categoricals):
 @pytest.mark.parametrize("dates_as_object", [True, False])
 def test_reconstruct_date_index(store, metadata_version, dates_as_object):
     ser = ParquetSerializer()
-    # If the parquet file does include the primary index col, still use the reconstructed index and ignore the content of the file
+    # If the parquet file does include the primary index col, still use the
+    # reconstructed index and ignore the content of the file
     df = pd.DataFrame(
         {"index_col": [date(2018, 6, 1), date(2018, 6, 1)], "column": list("ab")}
     )
@@ -1622,7 +1624,8 @@ def test_input_to_metaframes_dict():
 
 
 def test_parse_nested_input_schema_compatible_but_different():
-    # Ensure that input can be parsed even though the schemas are not identical but compatible
+    # Ensure that input can be parsed even though the schemas are not
+    # identical but compatible
     df_input = [
         [
             {"data": {"table": pd.DataFrame({"A": [None]})}},
