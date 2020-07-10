@@ -255,7 +255,7 @@ def check_datasets(datasets, cube):
 
     - seed dataset present
     - metadata version correct
-    - only the kartothek-specific table is present
+    - only the cube-specific table is present
     - partition keys are correct
     - no overlapping payload columns exists
     - datatypes are consistent
