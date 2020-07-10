@@ -6,7 +6,7 @@ from copy import copy
 from functools import reduce
 
 from kartothek.core.common_metadata import validate_shared_columns
-from kartothek.core.cube.constants import KLEE_METADATA_VERSION
+from kartothek.core.cube.constants import KTK_CUBE_METADATA_VERSION
 from kartothek.core.index import ExplicitSecondaryIndex, PartitionIndex
 from kartothek.io_components.metapartition import SINGLE_TABLE
 from kartothek.utils.ktk_adapters import get_dataset_columns
@@ -74,21 +74,21 @@ def _check_overlap(datasets, cube):
     ValueError: In case of overlapping payload columns.
     """
     payload_columns = defaultdict(list)
-    for klee_dataset_id, ds in datasets.items():
+    for ktk_cube_dataset_id, ds in datasets.items():
         for col in get_payload_subset(get_dataset_columns(ds), cube):
-            payload_columns[col].append(klee_dataset_id)
+            payload_columns[col].append(ktk_cube_dataset_id)
     payload_columns = {
-        col: klee_dataset_ids
-        for col, klee_dataset_ids in payload_columns.items()
-        if len(klee_dataset_ids) > 1
+        col: ktk_cube_dataset_ids
+        for col, ktk_cube_dataset_ids in payload_columns.items()
+        if len(ktk_cube_dataset_ids) > 1
     }
     if payload_columns:
         raise ValueError(
             "Found columns present in multiple datasets:{}".format(
                 "\n".join(
-                    " - {col}: {klee_dataset_ids}".format(
+                    " - {col}: {ktk_cube_dataset_ids}".format(
                         col=col,
-                        klee_dataset_ids=", ".join(sorted(payload_columns[col])),
+                        ktk_cube_dataset_ids=", ".join(sorted(payload_columns[col])),
                     )
                     for col in sorted(payload_columns.keys())
                 )
@@ -114,15 +114,15 @@ def _check_dimension_columns(datasets, cube):
     ------
     ValueError: In case dimension columns are broken.
     """
-    for klee_dataset_id in sorted(datasets.keys()):
-        ds = datasets[klee_dataset_id]
+    for ktk_cube_dataset_id in sorted(datasets.keys()):
+        ds = datasets[ktk_cube_dataset_id]
         columns = get_dataset_columns(ds)
-        if klee_dataset_id == cube.seed_dataset:
+        if ktk_cube_dataset_id == cube.seed_dataset:
             missing = set(cube.dimension_columns) - columns
             if missing:
                 raise ValueError(
-                    'Seed dataset "{klee_dataset_id}" has missing dimension columns: {missing}'.format(
-                        klee_dataset_id=klee_dataset_id,
+                    'Seed dataset "{ktk_cube_dataset_id}" has missing dimension columns: {missing}'.format(
+                        ktk_cube_dataset_id=ktk_cube_dataset_id,
                         missing=", ".join(sorted(missing)),
                     )
                 )
@@ -131,10 +131,10 @@ def _check_dimension_columns(datasets, cube):
             if len(present) == 0:
                 raise ValueError(
                     (
-                        'Dataset "{klee_dataset_id}" must have at least 1 of the following dimension columns: '
+                        'Dataset "{ktk_cube_dataset_id}" must have at least 1 of the following dimension columns: '
                         "{dims}"
                     ).format(
-                        klee_dataset_id=klee_dataset_id,
+                        ktk_cube_dataset_id=ktk_cube_dataset_id,
                         dims=", ".join(cube.dimension_columns),
                     )
                 )
@@ -158,16 +158,16 @@ def _check_partition_columns(datasets, cube):
     ------
     ValueError: In case partition columns are broken.
     """
-    for klee_dataset_id in sorted(datasets.keys()):
-        ds = datasets[klee_dataset_id]
+    for ktk_cube_dataset_id in sorted(datasets.keys()):
+        ds = datasets[ktk_cube_dataset_id]
         columns = set(ds.partition_keys)
 
-        if klee_dataset_id == cube.seed_dataset:
+        if ktk_cube_dataset_id == cube.seed_dataset:
             missing = set(cube.partition_columns) - columns
             if missing:
                 raise ValueError(
-                    'Seed dataset "{klee_dataset_id}" has missing partition columns: {missing}'.format(
-                        klee_dataset_id=klee_dataset_id,
+                    'Seed dataset "{ktk_cube_dataset_id}" has missing partition columns: {missing}'.format(
+                        ktk_cube_dataset_id=ktk_cube_dataset_id,
                         missing=", ".join(sorted(missing)),
                     )
                 )
@@ -177,7 +177,7 @@ def _check_partition_columns(datasets, cube):
         ) & set(cube.partition_columns)
         if unspecified_partition_columns:
             raise ValueError(
-                f"Unspecified but provided partition columns in {klee_dataset_id}: "
+                f"Unspecified but provided partition columns in {ktk_cube_dataset_id}: "
                 f"{', '.join(sorted(unspecified_partition_columns))}"
             )
 
@@ -200,14 +200,14 @@ def _check_indices(datasets, cube):
     ------
     ValueError: In case indices are broken.
     """
-    for klee_dataset_id in sorted(datasets.keys()):
-        ds = datasets[klee_dataset_id]
+    for ktk_cube_dataset_id in sorted(datasets.keys()):
+        ds = datasets[ktk_cube_dataset_id]
         primary_indices = ds.partition_keys
         columns = get_dataset_columns(ds)
         secondary_indices = set()
         any_indices = set(cube.index_columns) & columns
 
-        if klee_dataset_id == cube.seed_dataset:
+        if ktk_cube_dataset_id == cube.seed_dataset:
             secondary_indices |= set(cube.dimension_columns)
 
         for types, elements in (
@@ -228,8 +228,8 @@ def _check_indices(datasets, cube):
             for e in sorted(elements):
                 if e not in indices:
                     raise ValueError(
-                        '{tname} "{e}" is missing in dataset "{klee_dataset_id}".'.format(
-                            tname=tname, e=e, klee_dataset_id=klee_dataset_id
+                        '{tname} "{e}" is missing in dataset "{ktk_cube_dataset_id}".'.format(
+                            tname=tname, e=e, ktk_cube_dataset_id=ktk_cube_dataset_id
                         )
                     )
 
@@ -238,11 +238,11 @@ def _check_indices(datasets, cube):
                 tname2 = t2.__name__
                 if (idx != "dummy") and (not isinstance(idx, types)):
                     raise ValueError(
-                        '"{e}" in dataset "{klee_dataset_id}" is of type {tname2} but should be {tname}.'.format(
+                        '"{e}" in dataset "{ktk_cube_dataset_id}" is of type {tname2} but should be {tname}.'.format(
                             tname=tname,
                             tname2=tname2,
                             e=e,
-                            klee_dataset_id=klee_dataset_id,
+                            ktk_cube_dataset_id=ktk_cube_dataset_id,
                         )
                     )
 
@@ -255,7 +255,7 @@ def check_datasets(datasets, cube):
 
     - seed dataset present
     - metadata version correct
-    - only the klee-specific table is present
+    - only the kartothek-specific table is present
     - partition keys are correct
     - no overlapping payload columns exists
     - datatypes are consistent
@@ -291,7 +291,7 @@ def check_datasets(datasets, cube):
     _check_datasets(
         datasets=datasets,
         f=lambda ds: ds.metadata_version,
-        expected=KLEE_METADATA_VERSION,
+        expected=KTK_CUBE_METADATA_VERSION,
         what="metadata version",
     )
     datasets = {name: ds.load_partition_indices() for name, ds in datasets.items()}

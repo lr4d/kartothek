@@ -1,5 +1,5 @@
 """
-Klee2 CLI code.
+Kartothek CLI code.
 
 .. important::
     This module does not contain any public APIs.
@@ -77,7 +77,7 @@ __all__ = ("cli",)
 @click.pass_context
 def cli(ctx, store, cube, skv, n_threads, color):
     """
-    Execute certain operations on the given Klee2 cube.
+    Execute certain operations on the given Kartothek cube.
 
     If possible, the operations will be performed in parallel on the current machine.
     """

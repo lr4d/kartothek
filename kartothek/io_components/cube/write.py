@@ -10,10 +10,10 @@ from pandas.api.types import is_sparse
 from kartothek.api.consistency import check_datasets, get_payload_subset
 from kartothek.core.common_metadata import store_schema_metadata
 from kartothek.core.cube.constants import (
-    KLEE_METADATA_DIMENSION_COLUMNS,
-    KLEE_METADATA_KEY_IS_SEED,
-    KLEE_METADATA_PARTITION_COLUMNS,
-    KLEE_METADATA_VERSION,
+    KTK_CUBE_METADATA_DIMENSION_COLUMNS,
+    KTK_CUBE_METADATA_KEY_IS_SEED,
+    KTK_CUBE_METADATA_PARTITION_COLUMNS,
+    KTK_CUBE_METADATA_VERSION,
 )
 from kartothek.core.dataset import DatasetMetadataBuilder
 from kartothek.core.naming import metadata_key_from_uuid
@@ -34,7 +34,7 @@ __all__ = (
 )
 
 
-def check_provided_metadata_dict(metadata, klee_dataset_ids):
+def check_provided_metadata_dict(metadata, ktk_cube_dataset_ids):
     """
     Check metadata dict provided by the user.
 
@@ -42,8 +42,8 @@ def check_provided_metadata_dict(metadata, klee_dataset_ids):
     ----------
     metadata: Optional[Dict[str, Dict[str, Any]]]
         Optional metadata provided by the user.
-    klee_dataset_ids: Iterable[str]
-        klee_dataset_ids announced by the user.
+    ktk_cube_dataset_ids: Iterable[str]
+        ktk_cube_dataset_ids announced by the user.
 
     Returns
     -------
@@ -53,7 +53,7 @@ def check_provided_metadata_dict(metadata, klee_dataset_ids):
     Raises
     ------
     TypeError: If either the dict or one of the contained values has the wrong type.
-    ValueError: If a klee_dataset_id in the dict is not in klee_dataset_ids.
+    ValueError: If a ktk_cube_dataset_id in the dict is not in ktk_cube_dataset_ids.
     """
     if metadata is None:
         metadata = {}
@@ -64,10 +64,10 @@ def check_provided_metadata_dict(metadata, klee_dataset_ids):
             )
         )
 
-    unknown_ids = set(metadata.keys()) - set(klee_dataset_ids)
+    unknown_ids = set(metadata.keys()) - set(ktk_cube_dataset_ids)
     if unknown_ids:
         raise ValueError(
-            "Provided metadata for otherwise unspecified klee_dataset_ids: {}".format(
+            "Provided metadata for otherwise unspecified ktk_cube_dataset_ids: {}".format(
                 ", ".join(sorted(unknown_ids))
             )
         )
@@ -85,7 +85,7 @@ def check_provided_metadata_dict(metadata, klee_dataset_ids):
     return metadata
 
 
-def prepare_ktk_metadata(cube, klee_dataset_id, metadata):
+def prepare_ktk_metadata(cube, ktk_cube_dataset_id, metadata):
     """
     Prepare metadata that should be passed to Kartothek.
 
@@ -100,10 +100,10 @@ def prepare_ktk_metadata(cube, klee_dataset_id, metadata):
     ----------
     cube: kartothek.core.cube.cube.Cube
         Cube specification.
-    klee_dataset_id: str
-        Klee dataset UUID (w/o cube prefix).
+    ktk_cube_dataset_id: str
+        Ktk_cube dataset UUID (w/o cube prefix).
     metadata: Optional[Dict[str, Dict[str, Any]]]
-        Optional metadata provided by the user. The first key is the klee dataset id,
+        Optional metadata provided by the user. The first key is the ktk_cube dataset id,
         the value is the user-level metadata for that dataset. Should be piped through
         :meth:`check_provided_metadata_dict` beforehand.
 
@@ -115,22 +115,22 @@ def prepare_ktk_metadata(cube, klee_dataset_id, metadata):
     if metadata is None:
         metadata = {}
 
-    ds_metadata = metadata.get(klee_dataset_id, {})
-    ds_metadata[KLEE_METADATA_DIMENSION_COLUMNS] = list(cube.dimension_columns)
-    ds_metadata[KLEE_METADATA_KEY_IS_SEED] = klee_dataset_id == cube.seed_dataset
-    ds_metadata[KLEE_METADATA_PARTITION_COLUMNS] = list(cube.partition_columns)
+    ds_metadata = metadata.get(ktk_cube_dataset_id, {})
+    ds_metadata[KTK_CUBE_METADATA_DIMENSION_COLUMNS] = list(cube.dimension_columns)
+    ds_metadata[KTK_CUBE_METADATA_KEY_IS_SEED] = ktk_cube_dataset_id == cube.seed_dataset
+    ds_metadata[KTK_CUBE_METADATA_PARTITION_COLUMNS] = list(cube.partition_columns)
 
     return ds_metadata
 
 
-def _check_user_df(klee_dataset_id, df, cube, existing_payload, partition_on):
+def _check_user_df(ktk_cube_dataset_id, df, cube, existing_payload, partition_on):
     """
     Check user-provided DataFrame for sanity.
 
     Parameters
     ----------
-    klee_dataset_id: str
-        Klee dataset UUID (w/o cube prefix).
+    ktk_cube_dataset_id: str
+        Ktk_cube dataset UUID (w/o cube prefix).
     df: Optional[pandas.DataFrame]
         DataFrame to be passed to Kartothek.
     cube: kartothek.core.cube.cube.Cube
@@ -164,17 +164,17 @@ def _check_user_df(klee_dataset_id, df, cube, existing_payload, partition_on):
 
     if len(df_columns) != len(df_columns_set):
         raise ValueError(
-            'Duplicate columns found in dataset "{klee_dataset_id}": {df_columns}'.format(
-                klee_dataset_id=klee_dataset_id, df_columns=", ".join(df_columns)
+            'Duplicate columns found in dataset "{ktk_cube_dataset_id}": {df_columns}'.format(
+                ktk_cube_dataset_id=ktk_cube_dataset_id, df_columns=", ".join(df_columns)
             )
         )
 
-    if klee_dataset_id == cube.seed_dataset:
+    if ktk_cube_dataset_id == cube.seed_dataset:
         missing_dimension_columns = set(cube.dimension_columns) - df_columns_set
         if missing_dimension_columns:
             raise ValueError(
-                'Missing dimension columns in seed data "{klee_dataset_id}": {missing_dimension_columns}'.format(
-                    klee_dataset_id=klee_dataset_id,
+                'Missing dimension columns in seed data "{ktk_cube_dataset_id}": {missing_dimension_columns}'.format(
+                    ktk_cube_dataset_id=ktk_cube_dataset_id,
                     missing_dimension_columns=", ".join(
                         sorted(missing_dimension_columns)
                     ),
@@ -183,8 +183,8 @@ def _check_user_df(klee_dataset_id, df, cube, existing_payload, partition_on):
     else:
         if len(dcols_present) == 0:
             raise ValueError(
-                'Dataset "{klee_dataset_id}" must have at least 1 of the following dimension columns: {dims}'.format(
-                    klee_dataset_id=klee_dataset_id,
+                'Dataset "{ktk_cube_dataset_id}" must have at least 1 of the following dimension columns: {dims}'.format(
+                    ktk_cube_dataset_id=ktk_cube_dataset_id,
                     dims=", ".join(cube.dimension_columns),
                 )
             )
@@ -192,8 +192,8 @@ def _check_user_df(klee_dataset_id, df, cube, existing_payload, partition_on):
     missing_partition_columns = set(partition_on) - df_columns_set
     if missing_partition_columns:
         raise ValueError(
-            'Missing partition columns in dataset "{klee_dataset_id}": {missing_partition_columns}'.format(
-                klee_dataset_id=klee_dataset_id,
+            'Missing partition columns in dataset "{ktk_cube_dataset_id}": {missing_partition_columns}'.format(
+                ktk_cube_dataset_id=ktk_cube_dataset_id,
                 missing_partition_columns=", ".join(sorted(missing_partition_columns)),
             )
         )
@@ -206,8 +206,8 @@ def _check_user_df(klee_dataset_id, df, cube, existing_payload, partition_on):
         for col in sorted(cols):
             if df[col].isnull().any():
                 raise ValueError(
-                    'Found NULL-values in {what} column "{col}" of dataset "{klee_dataset_id}"'.format(
-                        col=col, klee_dataset_id=klee_dataset_id, what=what
+                    'Found NULL-values in {what} column "{col}" of dataset "{ktk_cube_dataset_id}"'.format(
+                        col=col, ktk_cube_dataset_id=ktk_cube_dataset_id, what=what
                     )
                 )
 
@@ -215,8 +215,8 @@ def _check_user_df(klee_dataset_id, df, cube, existing_payload, partition_on):
     payload_overlap = payload & existing_payload
     if payload_overlap:
         raise ValueError(
-            'Payload written in "{klee_dataset_id}" is already present in cube: {payload_overlap}'.format(
-                klee_dataset_id=klee_dataset_id,
+            'Payload written in "{ktk_cube_dataset_id}" is already present in cube: {payload_overlap}'.format(
+                ktk_cube_dataset_id=ktk_cube_dataset_id,
                 payload_overlap=", ".join(sorted(payload_overlap)),
             )
         )
@@ -226,12 +226,12 @@ def _check_user_df(klee_dataset_id, df, cube, existing_payload, partition_on):
     )
     if unspecified_partition_columns:
         raise ValueError(
-            f"Unspecified but provided partition columns in {klee_dataset_id}: "
+            f"Unspecified but provided partition columns in {ktk_cube_dataset_id}: "
             f"{', '.join(sorted(unspecified_partition_columns))}"
         )
 
 
-def _check_duplicates(klee_dataset_id, df, sort_keys, cube):
+def _check_duplicates(ktk_cube_dataset_id, df, sort_keys, cube):
     dup_mask = mask_sorted_duplicates_keep_last(df, sort_keys)
     if dup_mask.any():
         df_with_dups = df.iloc[dup_mask]
@@ -243,7 +243,7 @@ def _check_duplicates(klee_dataset_id, df, sort_keys, cube):
         cols_show_id = cols_id - set(sort_keys)
         cols_show_nonid = set(df.columns) - cols_id
         raise ValueError(
-            f'Found duplicate cells by [{", ".join(sorted(sort_keys))}] in dataset "{klee_dataset_id}", example:\n'
+            f'Found duplicate cells by [{", ".join(sorted(sort_keys))}] in dataset "{ktk_cube_dataset_id}", example:\n'
             f"\n"
             f"Keys:\n"
             f"{example_row[sorted(sort_keys)].to_string()}\n"
@@ -256,7 +256,7 @@ def _check_duplicates(klee_dataset_id, df, sort_keys, cube):
 
 
 def prepare_data_for_ktk(
-    df, klee_dataset_id, cube, existing_payload, partition_on, consume_df=False
+    df, ktk_cube_dataset_id, cube, existing_payload, partition_on, consume_df=False
 ):
     """
     Prepare data so it can be handed over to Kartothek.
@@ -267,8 +267,8 @@ def prepare_data_for_ktk(
     ----------
     df: pandas.DataFrame
         DataFrame to be passed to Kartothek.
-    klee_dataset_id: str
-        Klee dataset UUID (w/o cube prefix).
+    ktk_cube_dataset_id: str
+        Ktk_cube dataset UUID (w/o cube prefix).
     cube: kartothek.core.cube.cube.Cube
         Cube specification.
     existing_payload: Set[str]
@@ -288,13 +288,13 @@ def prepare_data_for_ktk(
     ValueError
         In case anything is fishy.
     """
-    _check_user_df(klee_dataset_id, df, cube, existing_payload, partition_on)
+    _check_user_df(ktk_cube_dataset_id, df, cube, existing_payload, partition_on)
 
     if (df is None) or df.empty:
         # fast-path for empty DF
         return MetaPartition(
             label=None,
-            metadata_version=KLEE_METADATA_VERSION,
+            metadata_version=KTK_CUBE_METADATA_VERSION,
             partition_keys=list(partition_on),
         )
 
@@ -316,7 +316,7 @@ def prepare_data_for_ktk(
     df = sort_dataframe(df=df, columns=sort_keys)
 
     # check duplicate cells
-    _check_duplicates(klee_dataset_id, df, sort_keys, cube)
+    _check_duplicates(ktk_cube_dataset_id, df, sort_keys, cube)
 
     # check+convert column names to unicode strings
     df.rename(columns={c: converter_str(c) for c in df_columns}, inplace=True)
@@ -325,7 +325,7 @@ def prepare_data_for_ktk(
     mp = MetaPartition(
         label=gen_uuid(),
         data={SINGLE_TABLE: df},
-        metadata_version=KLEE_METADATA_VERSION,
+        metadata_version=KTK_CUBE_METADATA_VERSION,
     )
     del df
 
@@ -339,7 +339,7 @@ def prepare_data_for_ktk(
 
     # calculate indices
     indices_to_build = set(cube.index_columns) & df_columns_set
-    if klee_dataset_id == cube.seed_dataset:
+    if ktk_cube_dataset_id == cube.seed_dataset:
         indices_to_build |= set(cube.dimension_columns)
     indices_to_build -= set(partition_on)
 
@@ -396,8 +396,8 @@ def apply_postwrite_checks(datasets, cube, store, existing_datasets):
     """
     try:
         empty_datasets = {
-            klee_dataset_id
-            for klee_dataset_id, ds in datasets.items()
+            ktk_cube_dataset_id
+            for ktk_cube_dataset_id, ds in datasets.items()
             if SINGLE_TABLE not in ds.table_meta
         }
         if empty_datasets:
@@ -420,7 +420,7 @@ def apply_postwrite_checks(datasets, cube, store, existing_datasets):
     return datasets
 
 
-def check_datasets_prebuild(klee_dataset_ids, cube, existing_datasets):
+def check_datasets_prebuild(ktk_cube_dataset_ids, cube, existing_datasets):
     """
     Check if given dataset UUIDs can be used to build a given cube, to be used before any write operation is performed.
 
@@ -431,7 +431,7 @@ def check_datasets_prebuild(klee_dataset_ids, cube, existing_datasets):
 
     Parameters
     ----------
-    klee_dataset_ids: Iterable[str]
+    ktk_cube_dataset_ids: Iterable[str]
         Dataset IDs that should be written.
     cube: kartothek.core.cube.cube.Cube
         Cube specification.
@@ -443,10 +443,10 @@ def check_datasets_prebuild(klee_dataset_ids, cube, existing_datasets):
     ValueError
         In case of an error.
     """
-    if cube.seed_dataset not in klee_dataset_ids:
+    if cube.seed_dataset not in ktk_cube_dataset_ids:
         raise ValueError('Seed data ("{}") is missing.'.format(cube.seed_dataset))
 
-    missing_overwrites = set(existing_datasets.keys()) - set(klee_dataset_ids)
+    missing_overwrites = set(existing_datasets.keys()) - set(ktk_cube_dataset_ids)
     if missing_overwrites:
         raise ValueError(
             "Following datasets exists but are not overwritten (partial overwrite), this is not allowed: {}".format(
@@ -455,7 +455,7 @@ def check_datasets_prebuild(klee_dataset_ids, cube, existing_datasets):
         )
 
 
-def check_datasets_preextend(klee_dataset_ids, cube):
+def check_datasets_preextend(ktk_cube_dataset_ids, cube):
     """
     Check if given dataset UUIDs can be used to extend a given cube, to be used before any write operation is performed.
 
@@ -469,7 +469,7 @@ def check_datasets_preextend(klee_dataset_ids, cube):
 
     Parameters
     ----------
-    klee_dataset_ids: Iterable[str]
+    ktk_cube_dataset_ids: Iterable[str]
         Dataset IDs that should be written.
     cube: kartothek.core.cube.cube.Cube
         Cube specification.
@@ -479,7 +479,7 @@ def check_datasets_preextend(klee_dataset_ids, cube):
     ValueError
         In case of an error.
     """
-    if cube.seed_dataset in klee_dataset_ids:
+    if cube.seed_dataset in ktk_cube_dataset_ids:
         raise ValueError(
             'Seed data ("{}") cannot be written during extension.'.format(
                 cube.seed_dataset
@@ -504,12 +504,12 @@ def _rollback_transaction(existing_datasets, new_datasets, store):
         store = store()
 
     # delete newly created datasets that where not present before the "transaction"
-    for klee_dataset_id in sorted(set(new_datasets) - set(existing_datasets)):
-        store.delete(metadata_key_from_uuid(new_datasets[klee_dataset_id].uuid))
+    for ktk_cube_dataset_id in sorted(set(new_datasets) - set(existing_datasets)):
+        store.delete(metadata_key_from_uuid(new_datasets[ktk_cube_dataset_id].uuid))
 
     # recover changes of old datasets
-    for klee_dataset_id in sorted(set(new_datasets) & set(existing_datasets)):
-        ds = existing_datasets[klee_dataset_id]
+    for ktk_cube_dataset_id in sorted(set(new_datasets) & set(existing_datasets)):
+        ds = existing_datasets[ktk_cube_dataset_id]
         builder = DatasetMetadataBuilder.from_dataset(ds)
         store.put(*builder.to_json())
         for table, schema in ds.table_meta.items():
@@ -518,7 +518,7 @@ def _rollback_transaction(existing_datasets, new_datasets, store):
             )
 
 
-def prepare_ktk_partition_on(cube, klee_dataset_ids, partition_on):
+def prepare_ktk_partition_on(cube, ktk_cube_dataset_ids, partition_on):
     """
     Prepare ``partition_on`` values for kartothek.
 
@@ -526,8 +526,8 @@ def prepare_ktk_partition_on(cube, klee_dataset_ids, partition_on):
     ----------
     cube: kartothek.core.cube.cube.Cube
         Cube specification.
-    klee_dataset_ids: Iterable[str]
-        klee_dataset_ids announced by the user.
+    ktk_cube_dataset_ids: Iterable[str]
+        ktk_cube_dataset_ids announced by the user.
     partition_on: Optional[Dict[str, Iterable[str]]]
         Optional parition-on attributes for datasets.
 
@@ -546,20 +546,20 @@ def prepare_ktk_partition_on(cube, klee_dataset_ids, partition_on):
     default = cube.partition_columns
 
     result = {}
-    for klee_dataset_id in klee_dataset_ids:
-        po = tuple(partition_on.get(klee_dataset_id, default))
+    for ktk_cube_dataset_id in ktk_cube_dataset_ids:
+        po = tuple(partition_on.get(ktk_cube_dataset_id, default))
 
-        if klee_dataset_id == cube.seed_dataset:
+        if ktk_cube_dataset_id == cube.seed_dataset:
             if po != default:
                 raise ValueError(
-                    f"Seed dataset {klee_dataset_id} must have the following, fixed partition-on attribute: "
+                    f"Seed dataset {ktk_cube_dataset_id} must have the following, fixed partition-on attribute: "
                     f"{', '.join(default)}"
                 )
         if len(set(po)) != len(po):
             raise ValueError(
-                f"partition-on attribute of dataset {klee_dataset_id} contains duplicates: {', '.join(po)}"
+                f"partition-on attribute of dataset {ktk_cube_dataset_id} contains duplicates: {', '.join(po)}"
             )
 
-        result[klee_dataset_id] = po
+        result[ktk_cube_dataset_id] = po
 
     return result

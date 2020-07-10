@@ -2,9 +2,9 @@ import pandas as pd
 import pytest
 
 from kartothek.core.cube.constants import (
-    KLEE_METADATA_DIMENSION_COLUMNS,
-    KLEE_METADATA_KEY_IS_SEED,
-    KLEE_METADATA_PARTITION_COLUMNS,
+    KTK_CUBE_METADATA_DIMENSION_COLUMNS,
+    KTK_CUBE_METADATA_KEY_IS_SEED,
+    KTK_CUBE_METADATA_PARTITION_COLUMNS,
 )
 from kartothek.core.cube.cube import Cube
 from kartothek.core.dataset import DatasetMetadata
@@ -304,18 +304,18 @@ def test_metadata(driver, function_store, existing_cube):
         "b",
         "c",
         "creation_time",
-        KLEE_METADATA_DIMENSION_COLUMNS,
-        KLEE_METADATA_KEY_IS_SEED,
-        KLEE_METADATA_PARTITION_COLUMNS,
+        KTK_CUBE_METADATA_DIMENSION_COLUMNS,
+        KTK_CUBE_METADATA_KEY_IS_SEED,
+        KTK_CUBE_METADATA_PARTITION_COLUMNS,
     }
     assert ds_source.metadata["a"] == 12
     assert ds_source.metadata["b"] == 11
     assert ds_source.metadata["c"] == 13
-    assert ds_source.metadata[KLEE_METADATA_DIMENSION_COLUMNS] == list(
+    assert ds_source.metadata[KTK_CUBE_METADATA_DIMENSION_COLUMNS] == list(
         existing_cube.dimension_columns
     )
-    assert ds_source.metadata[KLEE_METADATA_KEY_IS_SEED] is True
-    assert ds_source.metadata[KLEE_METADATA_PARTITION_COLUMNS] == list(
+    assert ds_source.metadata[KTK_CUBE_METADATA_KEY_IS_SEED] is True
+    assert ds_source.metadata[KTK_CUBE_METADATA_PARTITION_COLUMNS] == list(
         existing_cube.partition_columns
     )
 
@@ -326,16 +326,16 @@ def test_metadata(driver, function_store, existing_cube):
         "a",
         "b",
         "creation_time",
-        KLEE_METADATA_DIMENSION_COLUMNS,
-        KLEE_METADATA_KEY_IS_SEED,
-        KLEE_METADATA_PARTITION_COLUMNS,
+        KTK_CUBE_METADATA_DIMENSION_COLUMNS,
+        KTK_CUBE_METADATA_KEY_IS_SEED,
+        KTK_CUBE_METADATA_PARTITION_COLUMNS,
     }
     assert ds_enrich.metadata["a"] == 20
     assert ds_enrich.metadata["b"] == 21
-    assert ds_enrich.metadata[KLEE_METADATA_DIMENSION_COLUMNS] == list(
+    assert ds_enrich.metadata[KTK_CUBE_METADATA_DIMENSION_COLUMNS] == list(
         existing_cube.dimension_columns
     )
-    assert ds_enrich.metadata[KLEE_METADATA_KEY_IS_SEED] is False
-    assert ds_enrich.metadata[KLEE_METADATA_PARTITION_COLUMNS] == list(
+    assert ds_enrich.metadata[KTK_CUBE_METADATA_KEY_IS_SEED] is False
+    assert ds_enrich.metadata[KTK_CUBE_METADATA_PARTITION_COLUMNS] == list(
         existing_cube.partition_columns
     )

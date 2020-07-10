@@ -1,9 +1,9 @@
 import pytest
 
 from kartothek.core.cube.constants import (
-    KLEE_METADATA_DIMENSION_COLUMNS,
-    KLEE_METADATA_KEY_IS_SEED,
-    KLEE_METADATA_PARTITION_COLUMNS,
+    KTK_CUBE_METADATA_DIMENSION_COLUMNS,
+    KTK_CUBE_METADATA_KEY_IS_SEED,
+    KTK_CUBE_METADATA_PARTITION_COLUMNS,
 )
 from kartothek.core.cube.cube import Cube
 from kartothek.io_components.cube.write import (
@@ -25,18 +25,18 @@ def cube():
 def test_prepare_ktk_metadata_simple(cube):
     metadata = prepare_ktk_metadata(cube, "source", None)
     assert metadata == {
-        KLEE_METADATA_DIMENSION_COLUMNS: ["x"],
-        KLEE_METADATA_PARTITION_COLUMNS: ["p"],
-        KLEE_METADATA_KEY_IS_SEED: True,
+        KTK_CUBE_METADATA_DIMENSION_COLUMNS: ["x"],
+        KTK_CUBE_METADATA_PARTITION_COLUMNS: ["p"],
+        KTK_CUBE_METADATA_KEY_IS_SEED: True,
     }
 
 
 def test_prepare_ktk_metadata_no_source(cube):
     metadata = prepare_ktk_metadata(cube, "no_source", None)
     assert metadata == {
-        KLEE_METADATA_DIMENSION_COLUMNS: ["x"],
-        KLEE_METADATA_PARTITION_COLUMNS: ["p"],
-        KLEE_METADATA_KEY_IS_SEED: False,
+        KTK_CUBE_METADATA_DIMENSION_COLUMNS: ["x"],
+        KTK_CUBE_METADATA_PARTITION_COLUMNS: ["p"],
+        KTK_CUBE_METADATA_KEY_IS_SEED: False,
     }
 
 
@@ -47,9 +47,9 @@ def test_prepare_ktk_metadata_usermeta(cube):
         {"source": {"bla": "blub"}, "no_source": {"user_key0": "value0"}},
     )
     assert metadata == {
-        KLEE_METADATA_DIMENSION_COLUMNS: ["x"],
-        KLEE_METADATA_PARTITION_COLUMNS: ["p"],
-        KLEE_METADATA_KEY_IS_SEED: False,
+        KTK_CUBE_METADATA_DIMENSION_COLUMNS: ["x"],
+        KTK_CUBE_METADATA_PARTITION_COLUMNS: ["p"],
+        KTK_CUBE_METADATA_KEY_IS_SEED: False,
         "user_key0": "value0",
     }
 
@@ -71,6 +71,6 @@ def test_check_provided_metadata_dict_wrong_type_nested():
 def test_check_provided_metadata_dict_unknown_ids():
     with pytest.raises(
         ValueError,
-        match="Provided metadata for otherwise unspecified klee_dataset_ids: a, b",
+        match="Provided metadata for otherwise unspecified ktk_cube_dataset_ids: a, b",
     ):
         check_provided_metadata_dict({"a": {}, "b": {}, "c": {}}, ["c"])

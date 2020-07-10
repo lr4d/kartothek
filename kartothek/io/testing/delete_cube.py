@@ -120,14 +120,14 @@ def test_partial_delete(driver, function_store):
         discover_datasets_unchecked(
             uuid_prefix=cube.uuid_prefix,
             store=function_store,
-            filter_klee_dataset_ids=["enrich-1"],
+            filter_ktk_cube_dataset_ids=["enrich-1"],
         )["enrich-1"]
     )
     enrich_2_keys = get_dataset_keys(
         discover_datasets_unchecked(
             uuid_prefix=cube.uuid_prefix,
             store=function_store,
-            filter_klee_dataset_ids=["enrich-2"],
+            filter_ktk_cube_dataset_ids=["enrich-2"],
         )["enrich-2"]
     )
     all_keys = set(function_store().keys())

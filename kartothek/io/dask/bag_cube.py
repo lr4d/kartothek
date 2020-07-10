@@ -41,7 +41,7 @@ def build_cube_from_bag(
     data,
     cube,
     store,
-    klee_dataset_ids=None,
+    ktk_cube_dataset_ids=None,
     metadata=None,
     overwrite=False,
     partition_on=None,
@@ -57,7 +57,7 @@ def build_cube_from_bag(
         Cube specification.
     store: Callable[[], simplekv.KeyValueStore]
         Store to which the data should be written to.
-    klee_dataset_ids: Optional[Iterable[str]]
+    ktk_cube_dataset_ids: Optional[Iterable[str]]
         Datasets that will be written, must be specified in advance. If left unprovided, it is assumed that only the
         seed dataset will be written.
     metadata: Optional[Dict[str, Dict[str, Any]]]
@@ -78,7 +78,7 @@ def build_cube_from_bag(
         data=data,
         cube=cube,
         store=store,
-        klee_dataset_ids=klee_dataset_ids,
+        ktk_cube_dataset_ids=ktk_cube_dataset_ids,
         metadata=metadata,
         overwrite=overwrite,
         partition_on=partition_on,
@@ -89,7 +89,7 @@ def extend_cube_from_bag(
     data,
     cube,
     store,
-    klee_dataset_ids,
+    ktk_cube_dataset_ids,
     metadata=None,
     overwrite=False,
     partition_on=None,
@@ -107,7 +107,7 @@ def extend_cube_from_bag(
         Cube specification.
     store: simplekv.KeyValueStore
         Store to which the data should be written to.
-    klee_dataset_ids: Optional[Iterable[str]]
+    ktk_cube_dataset_ids: Optional[Iterable[str]]
         Datasets that will be written, must be specified in advance.
     metadata: Optional[Dict[str, Dict[str, Any]]]
         Metadata for every dataset.
@@ -127,7 +127,7 @@ def extend_cube_from_bag(
         data=data,
         cube=cube,
         store=store,
-        klee_dataset_ids=klee_dataset_ids,
+        ktk_cube_dataset_ids=ktk_cube_dataset_ids,
         metadata=metadata,
         overwrite=overwrite,
         partition_on=partition_on,
@@ -159,7 +159,7 @@ def query_cube_bag(
         Conditions that should be applied, optional.
     datasets: Union[None, Iterable[str], Dict[str, kartothek.DatasetMetadata]]
         Datasets to query, must all be part of the cube. May be either the result of :meth:`discover_datasets`, an
-        iterable of Klee dataset ID or ``None`` (in which case auto-discovery will be used).
+        iterable of Ktk_cube dataset ID or ``None`` (in which case auto-discovery will be used).
     dimension_columns: Union[None, str, Iterable[str]]
         Dimension columns of the query, may result in projection. If not provided, dimension columns from cube
         specification will be used.
@@ -208,7 +208,7 @@ def delete_cube_bag(cube, store, blocksize=100, datasets=None):
         Number of keys to delete at once.
     datasets: Union[None, Iterable[str], Dict[str, kartothek.DatasetMetadata]]
         Datasets to delete, must all be part of the cube. May be either the result of :meth:`discover_datasets`, a list
-        of Klee dataset ID or ``None`` (in which case entire cube will be deleted).
+        of Ktk_cube dataset ID or ``None`` (in which case entire cube will be deleted).
 
     Returns
     -------
@@ -220,12 +220,12 @@ def delete_cube_bag(cube, store, blocksize=100, datasets=None):
 
     if not isinstance(datasets, dict):
         datasets = discover_datasets_unchecked(
-            uuid_prefix=cube.uuid_prefix, store=store, filter_klee_dataset_ids=datasets
+            uuid_prefix=cube.uuid_prefix, store=store, filter_ktk_cube_dataset_ids=datasets
         )
 
     keys = set()
-    for klee_dataset_id in sorted(datasets.keys()):
-        ds = datasets[klee_dataset_id]
+    for ktk_cube_dataset_id in sorted(datasets.keys()):
+        ds = datasets[ktk_cube_dataset_id]
         keys |= get_dataset_keys(ds)
 
     return db.from_sequence(seq=sorted(keys), partition_size=blocksize).map_partitions(
@@ -253,7 +253,7 @@ def copy_cube_bag(
         Number of keys to copy at once.
     datasets: Union[None, Iterable[str], Dict[str, kartothek.DatasetMetadata]]
         Datasets to copy, must all be part of the cube. May be either the result of :meth:`discover_datasets`, a list
-        of Klee dataset ID or ``None`` (in which case entire cube will be copied).
+        of Ktk_cube dataset ID or ``None`` (in which case entire cube will be copied).
 
     Returns
     -------
@@ -292,7 +292,7 @@ def collect_stats_bag(cube, store, datasets=None, blocksize=100):
         KV store that preserves the cube.
     datasets: Union[None, Iterable[str], Dict[str, kartothek.DatasetMetadata]]
         Datasets to query, must all be part of the cube. May be either the result of :meth:`discover_datasets`, a list
-        of Klee dataset ID or ``None`` (in which case auto-discovery will be used).
+        of Ktk_cube dataset ID or ``None`` (in which case auto-discovery will be used).
     blocksize: int
         Number of partitions to scan at once.
 
@@ -300,14 +300,14 @@ def collect_stats_bag(cube, store, datasets=None, blocksize=100):
     -------
     bag: dask.bag.Bag
         A dask bag that returns a single result of the form ``Dict[str, Dict[str, int]]`` and contains statistics per
-        klee dataset ID.
+        ktk_cube dataset ID.
     """
     check_store_factory(store)
     check_blocksize(blocksize)
 
     if not isinstance(datasets, dict):
         datasets = discover_datasets_unchecked(
-            uuid_prefix=cube.uuid_prefix, store=store, filter_klee_dataset_ids=datasets
+            uuid_prefix=cube.uuid_prefix, store=store, filter_ktk_cube_dataset_ids=datasets
         )
 
     all_metapartitions = get_metapartitions_for_stats(datasets)
@@ -329,7 +329,7 @@ def cleanup_cube_bag(cube, store, blocksize=100):
     Remove unused keys from cube datasets.
 
     .. important::
-        All untracked keys which start with the cube's `uuid_prefix` followed by the `KLEE_UUID_SEPERATOR`
+        All untracked keys which start with the cube's `uuid_prefix` followed by the `KTK_CUBE_UUID_SEPERATOR`
         (e.g. `my_cube_uuid++seed...`) will be deleted by this routine. These keys may be leftovers from past
         overwrites or index updates.
 
@@ -360,7 +360,7 @@ def cleanup_cube_bag(cube, store, blocksize=100):
     )
 
 
-def append_to_cube_from_bag(data, cube, store, klee_dataset_ids, metadata=None):
+def append_to_cube_from_bag(data, cube, store, ktk_cube_dataset_ids, metadata=None):
     """
     Append data to existing cube.
 
@@ -384,7 +384,7 @@ def append_to_cube_from_bag(data, cube, store, klee_dataset_ids, metadata=None):
         Cube specification.
     store: Callable[[], simplekv.KeyValueStore]
         Store to which the data should be written to.
-    klee_dataset_ids: Optional[Iterable[str]]
+    ktk_cube_dataset_ids: Optional[Iterable[str]]
         Datasets that will be written, must be specified in advance.
     metadata: Optional[Dict[str, Dict[str, Any]]]
         Metadata for every dataset, optional. For every dataset, only given keys are updated/replaced. Deletion of
@@ -400,7 +400,7 @@ def append_to_cube_from_bag(data, cube, store, klee_dataset_ids, metadata=None):
         data=data,
         cube=cube,
         store=store,
-        klee_dataset_ids=klee_dataset_ids,
+        ktk_cube_dataset_ids=ktk_cube_dataset_ids,
         metadata=metadata,
     )
 

@@ -11,7 +11,7 @@ from kartothek.utils.ktk_adapters import (
 __all__ = ("collect_stats_block", "get_metapartitions_for_stats", "reduce_stats")
 
 
-def _fold_stats(result, stats, klee_dataset_id):
+def _fold_stats(result, stats, ktk_cube_dataset_id):
     """
     Add stats together.
 
@@ -21,8 +21,8 @@ def _fold_stats(result, stats, klee_dataset_id):
         Result dictionary, may be empty or a result of a previous call to :meth:`_fold_stats`.
     stats: Dict[str, int]
         Statistics for a single dataset.
-    klee_dataset_id: str
-        Klee dataset ID for the given ``stats`` object.
+    ktk_cube_dataset_id: str
+        Ktk_cube dataset ID for the given ``stats`` object.
 
     Returns
     -------
@@ -31,12 +31,12 @@ def _fold_stats(result, stats, klee_dataset_id):
     """
     result = copy.deepcopy(result)
 
-    if klee_dataset_id in result:
-        ref = result[klee_dataset_id]
+    if ktk_cube_dataset_id in result:
+        ref = result[ktk_cube_dataset_id]
         for k, v in stats.items():
             ref[k] += v
     else:
-        result[klee_dataset_id] = stats
+        result[ktk_cube_dataset_id] = stats
 
     return result
 
@@ -53,15 +53,15 @@ def get_metapartitions_for_stats(datasets):
     Returns
     -------
     metapartitions: Tuple[Tuple[str, Tuple[kartothek.io_components.metapartition.MetaPartition, ...]], ...]
-        Pre-aligned metapartitions (by primary index / physical partitions) and the klee dataset ID belonging to them.
+        Pre-aligned metapartitions (by primary index / physical partitions) and the ktk_cube dataset ID belonging to them.
     """
     all_metapartitions = []
-    for klee_dataset_id, ds in datasets.items():
+    for ktk_cube_dataset_id, ds in datasets.items():
         dataset_factory = metadata_factory_from_dataset(ds)
         for mp in dispatch_metapartitions_from_factory(
             dataset_factory=dataset_factory, dispatch_by=dataset_factory.partition_keys
         ):
-            all_metapartitions.append((klee_dataset_id, mp))
+            all_metapartitions.append((ktk_cube_dataset_id, mp))
     return all_metapartitions
 
 
@@ -79,15 +79,15 @@ def collect_stats_block(metapartitions, store):
     Returns
     -------
     stats: Dict[str, Dict[str, int]]
-        Statistics per klee dataset ID.
+        Statistics per ktk_cube dataset ID.
     """
     if callable(store):
         store = store()
 
     result = {}
-    for klee_dataset_id, mp in metapartitions:
+    for ktk_cube_dataset_id, mp in metapartitions:
         stats = get_physical_partition_stats(mp, store)
-        result = _fold_stats(result, stats, klee_dataset_id)
+        result = _fold_stats(result, stats, ktk_cube_dataset_id)
 
     return result
 
@@ -105,10 +105,10 @@ def reduce_stats(stats_iter):
     Returns
     -------
     stats: Dict[str, Dict[str, int]]
-        Statistics per klee dataset ID.
+        Statistics per ktk_cube dataset ID.
     """
     result = {}
     for sub in stats_iter:
-        for klee_dataset_id, stats in sub.items():
-            result = _fold_stats(result, stats, klee_dataset_id)
+        for ktk_cube_dataset_id, stats in sub.items():
+            result = _fold_stats(result, stats, ktk_cube_dataset_id)
     return result

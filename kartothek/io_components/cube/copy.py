@@ -24,7 +24,7 @@ def get_copy_keys(cube, src_store, tgt_store, overwrite, datasets=None):
         If possibly existing datasets in the target store should be overwritten.
     datasets: Union[None, Iterable[str], Dict[str, kartothek.DatasetMetadata]]
         Datasets to copy, must all be part of the cube. May be either the result of :meth:`discover_datasets`, an
-        iterable of Klee dataset ID or ``None`` (in which case entire cube will be copied).
+        iterable of Ktk_cube dataset ID or ``None`` (in which case entire cube will be copied).
 
     Returns
     -------
@@ -39,7 +39,7 @@ def get_copy_keys(cube, src_store, tgt_store, overwrite, datasets=None):
         new_datasets = discover_datasets_unchecked(
             uuid_prefix=cube.uuid_prefix,
             store=src_store,
-            filter_klee_dataset_ids=datasets,
+            filter_ktk_cube_dataset_ids=datasets,
         )
     else:
         new_datasets = datasets
@@ -59,11 +59,11 @@ def get_copy_keys(cube, src_store, tgt_store, overwrite, datasets=None):
     existing_datasets = discover_datasets_unchecked(cube.uuid_prefix, tgt_store)
 
     if not overwrite:
-        for klee_dataset_id in sorted(new_datasets.keys()):
-            if klee_dataset_id in existing_datasets:
+        for ktk_cube_dataset_id in sorted(new_datasets.keys()):
+            if ktk_cube_dataset_id in existing_datasets:
                 raise RuntimeError(
                     'Dataset "{uuid}" exists in target store but overwrite was set to False'.format(
-                        uuid=new_datasets[klee_dataset_id].uuid
+                        uuid=new_datasets[ktk_cube_dataset_id].uuid
                     )
                 )
 
@@ -73,8 +73,8 @@ def get_copy_keys(cube, src_store, tgt_store, overwrite, datasets=None):
     check_datasets(all_datasets, cube)
 
     keys = set()
-    for klee_dataset_id in sorted(new_datasets.keys()):
-        ds = new_datasets[klee_dataset_id]
+    for ktk_cube_dataset_id in sorted(new_datasets.keys()):
+        ds = new_datasets[ktk_cube_dataset_id]
         keys |= get_dataset_keys(ds)
 
     return keys

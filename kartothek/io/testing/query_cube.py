@@ -147,7 +147,7 @@ def multipartition_cube(module_store, fullrange_data, fullrange_cube):
         data=db.from_sequence([0, 1], partition_size=1).map(_gen),
         store=module_store,
         cube=cube,
-        klee_dataset_ids=["seed", "enrich_dense", "enrich_sparse"],
+        ktk_cube_dataset_ids=["seed", "enrich_dense", "enrich_sparse"],
     ).compute()
     return cube
 
@@ -427,7 +427,7 @@ def updated_cube(module_store, fullrange_data):
     remove_partitions(
         cube=cube,
         store=module_store,
-        klee_dataset_ids=["enrich"],
+        ktk_cube_dataset_ids=["enrich"],
         conditions=C("p") >= 1,
     )
     append_to_cube(
@@ -1190,7 +1190,7 @@ time_travel_stages_ops_df = [
         ),
     ),
     (
-        partial(remove_partitions, klee_dataset_ids=["enrich"], conditions=C("p") > 0),
+        partial(remove_partitions, ktk_cube_dataset_ids=["enrich"], conditions=C("p") > 0),
         pd.DataFrame(
             data={
                 "x": [0, 1, 2, 3, 4, 5],

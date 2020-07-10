@@ -2,7 +2,7 @@ import typing
 
 import attr
 
-from kartothek.core.cube.constants import KLEE_UUID_SEPERATOR
+from kartothek.core.cube.constants import KTK_CUBE_UUID_SEPERATOR
 from kartothek.core.dataset import _validate_uuid
 from kartothek.utils.converters import (
     converter_str,
@@ -65,10 +65,10 @@ def _validator_uuid_freestanding(name, value):
                 name=name, value=value
             )
         )
-    if value.find(KLEE_UUID_SEPERATOR) != -1:
+    if value.find(KTK_CUBE_UUID_SEPERATOR) != -1:
         raise ValueError(
             '{name} ("{value}") must not contain UUID separator {sep}'.format(
-                name=name, value=value, sep=KLEE_UUID_SEPERATOR
+                name=name, value=value, sep=KTK_CUBE_UUID_SEPERATOR
             )
         )
 
@@ -93,7 +93,7 @@ class Cube:
     partition_columns: Tuple[str, ...]
         Columns that are used to partition the data. They also create (implicit) primary indices.
     uuid_prefix: str
-        All datasets that are part of the cube will have UUIDs of form ``'uuid_prefix+klee_dataset_id'``.
+        All datasets that are part of the cube will have UUIDs of form ``'uuid_prefix+ktk_cube_dataset_id'``.
     seed_dataset: str
         Dataset that present the ground-truth regarding cells present in the cube.
     index_columns: Tuple[str, ...]
@@ -130,13 +130,13 @@ class Cube:
         ],
     )
 
-    def ktk_dataset_uuid(self, klee_dataset_id):
+    def ktk_dataset_uuid(self, ktk_cube_dataset_id):
         """
         Get Kartothek dataset UUID for given dataset UUID, so the prefix is included.
 
         Parameters
         ----------
-        klee_dataset_id: str
+        ktk_cube_dataset_id: str
             Dataset ID w/o prefix
 
         Returns
@@ -147,14 +147,14 @@ class Cube:
         Raises
         ------
         ValueError
-            If ``klee_dataset_id`` is not a string or if it is not a valid UUID.
+            If ``ktk_cube_dataset_id`` is not a string or if it is not a valid UUID.
         """
-        klee_dataset_id = converter_str(klee_dataset_id)
-        _validator_uuid_freestanding("klee_dataset_id", klee_dataset_id)
-        return "{uuid_prefix}{sep}{klee_dataset_id}".format(
+        ktk_cube_dataset_id = converter_str(ktk_cube_dataset_id)
+        _validator_uuid_freestanding("ktk_cube_dataset_id", ktk_cube_dataset_id)
+        return "{uuid_prefix}{sep}{ktk_cube_dataset_id}".format(
             uuid_prefix=self.uuid_prefix,
-            sep=KLEE_UUID_SEPERATOR,
-            klee_dataset_id=klee_dataset_id,
+            sep=KTK_CUBE_UUID_SEPERATOR,
+            ktk_cube_dataset_id=ktk_cube_dataset_id,
         )
 
     @property

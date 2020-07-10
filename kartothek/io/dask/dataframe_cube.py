@@ -48,14 +48,14 @@ def build_cube_from_dataframe(
         A dask delayed object containing the compute graph to build a cube returning the dict of dataset metadata
         objects.
     """
-    data, klee_dataset_ids = _ddfs_to_bag(data, cube)
+    data, ktk_cube_dataset_ids = _ddfs_to_bag(data, cube)
 
     return (
         build_cube_from_bag_internal(
             data=data,
             cube=cube,
             store=store,
-            klee_dataset_ids=klee_dataset_ids,
+            ktk_cube_dataset_ids=ktk_cube_dataset_ids,
             metadata=metadata,
             overwrite=overwrite,
             partition_on=partition_on,
@@ -96,14 +96,14 @@ def extend_cube_from_dataframe(
         A dask bag object containing the compute graph to extend a cube returning the dict of dataset metadata objects.
         The bag has a single partition with a single element.
     """
-    data, klee_dataset_ids = _ddfs_to_bag(data, cube)
+    data, ktk_cube_dataset_ids = _ddfs_to_bag(data, cube)
 
     return (
         extend_cube_from_bag_internal(
             data=data,
             cube=cube,
             store=store,
-            klee_dataset_ids=klee_dataset_ids,
+            ktk_cube_dataset_ids=ktk_cube_dataset_ids,
             metadata=metadata,
             overwrite=overwrite,
             partition_on=partition_on,
@@ -140,7 +140,7 @@ def query_cube_dataframe(
         Conditions that should be applied, optional.
     datasets: Union[None, Iterable[str], Dict[str, kartothek.DatasetMetadata]]
         Datasets to query, must all be part of the cube. May be either the result of :meth:`discover_datasets`, a list
-        of Klee dataset ID or ``None`` (in which case auto-discovery will be used).
+        of Ktk_cube dataset ID or ``None`` (in which case auto-discovery will be used).
     dimension_columns: Union[None, str, Iterable[str]]
         Dimension columns of the query, may result in projection. If not provided, dimension columns from cube
         specification will be used.
@@ -208,14 +208,14 @@ def append_to_cube_from_dataframe(data, cube, store, metadata=None):
         A dask bag object containing the compute graph to append to the cube returning the dict of dataset metadata
         objects. The bag has a single partition with a single element.
     """
-    data, klee_dataset_ids = _ddfs_to_bag(data, cube)
+    data, ktk_cube_dataset_ids = _ddfs_to_bag(data, cube)
 
     return (
         append_to_cube_from_bag_internal(
             data=data,
             cube=cube,
             store=store,
-            klee_dataset_ids=klee_dataset_ids,
+            ktk_cube_dataset_ids=ktk_cube_dataset_ids,
             metadata=metadata,
         )
         .map_partitions(_unpack_list, default=None)
@@ -227,16 +227,16 @@ def _ddfs_to_bag(data, cube):
     if not isinstance(data, dict):
         data = {cube.seed_dataset: data}
 
-    klee_dataset_ids = sorted(data.keys())
+    ktk_cube_dataset_ids = sorted(data.keys())
     bags = []
-    for klee_dataset_id in klee_dataset_ids:
+    for ktk_cube_dataset_id in ktk_cube_dataset_ids:
         bags.append(
-            db.from_delayed(data[klee_dataset_id].to_delayed()).map_partitions(
-                _convert_write_bag, klee_dataset_id=klee_dataset_id
+            db.from_delayed(data[ktk_cube_dataset_id].to_delayed()).map_partitions(
+                _convert_write_bag, ktk_cube_dataset_id=ktk_cube_dataset_id
             )
         )
 
-    return (db.concat(bags), klee_dataset_ids)
+    return (db.concat(bags), ktk_cube_dataset_ids)
 
 
 def _unpack_list(l, default):  # noqa
@@ -247,5 +247,5 @@ def _unpack_list(l, default):  # noqa
         return default
 
 
-def _convert_write_bag(df, klee_dataset_id):
-    return [{klee_dataset_id: df}]
+def _convert_write_bag(df, ktk_cube_dataset_id):
+    return [{ktk_cube_dataset_id: df}]

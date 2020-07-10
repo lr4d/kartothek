@@ -18,21 +18,21 @@ from kartothek.utils.pandas import aggregate_to_lists, merge_dataframes_robust
 __all__ = ("regroup",)
 
 
-def _labels_col(klee_dataset_id):
+def _labels_col(ktk_cube_dataset_id):
     """
     Column that is used internally to track labels present for a given dataset.
 
     Parameters
     ----------
-    klee_dataset_id: str
-        Klee Dataset ID:
+    ktk_cube_dataset_id: str
+        Ktk_cube Dataset ID:
 
     Returns
     -------
     labels_col: str
         Column name.
     """
-    return "__klee_labels_{}".format(klee_dataset_id)
+    return "__ktk_cube_labels_{}".format(ktk_cube_dataset_id)
 
 
 def _aligned_df_to_label2gp(df, datasets, group_id, label2gp):
@@ -51,24 +51,24 @@ def _aligned_df_to_label2gp(df, datasets, group_id, label2gp):
         Maps "dataset ID -> (label -> (group ID, partition ID))", will be modified.
     """
     uuids = sorted(datasets.keys())
-    cols = [_labels_col(klee_dataset_id) for klee_dataset_id in uuids]
+    cols = [_labels_col(ktk_cube_dataset_id) for ktk_cube_dataset_id in uuids]
     for partition_id, labeldata in enumerate(zip(*[df[col].values for col in cols])):
-        for labels, klee_dataset_id in zip(labeldata, uuids):
+        for labels, ktk_cube_dataset_id in zip(labeldata, uuids):
             if not isinstance(labels, list):
                 assert pd.isnull(labels)
                 continue
             for label in labels:
-                label2gp[klee_dataset_id][label].append((group_id, partition_id))
+                label2gp[ktk_cube_dataset_id][label].append((group_id, partition_id))
 
 
-def _create_dataset_df(preconditions, klee_dataset_id, ds, cube, local_partition_by):
+def _create_dataset_df(preconditions, ktk_cube_dataset_id, ds, cube, local_partition_by):
     """
     Create DataFrame per dataset w/ partition information.
 
     The output will have a single row per partition that shares the same physical partition and the same partition-by
     attributes. For this, the following columns are present:
 
-    - ``'__klee_labels_<klee dataset ID>'``: for this dataset, contains lists of labels for the partition entry
+    - ``'__ktk_cube_labels_<ktk_cube dataset ID>'``: for this dataset, contains lists of labels for the partition entry
       partition entry
     - physical partition columns
     - additional partition-by columns (if available)
@@ -77,7 +77,7 @@ def _create_dataset_df(preconditions, klee_dataset_id, ds, cube, local_partition
     ----------
     preconditions: Conjunction
         Pre-conditions to be applied to this dataset.
-    klee_dataset_id: str
+    ktk_cube_dataset_id: str
         Dataset ID.
     ds: kartothek.DatasetMetadata
         Dataset.
@@ -92,13 +92,13 @@ def _create_dataset_df(preconditions, klee_dataset_id, ds, cube, local_partition
         Dataset DF.
     """
     preconditions = preconditions.split_by_column()
-    all_klee_partition_cols = sorted(
+    all_ktk_cube_partition_cols = sorted(
         set(local_partition_by) | (set(ds.partition_keys) & set(cube.partition_columns))
     )
 
     # build DF based on partition data
     df = get_partition_dataframe(dataset=ds, cube=cube)
-    df.index.rename(_labels_col(klee_dataset_id), inplace=True)
+    df.index.rename(_labels_col(ktk_cube_dataset_id), inplace=True)
 
     # apply pre-conditions
     entries = set(df.index.values)
@@ -117,15 +117,15 @@ def _create_dataset_df(preconditions, klee_dataset_id, ds, cube, local_partition
             partitions_as_index=True, compact=False
         )
         partition_df = pd.DataFrame(
-            {pcol: series.values, _labels_col(klee_dataset_id): series.index.values}
+            {pcol: series.values, _labels_col(ktk_cube_dataset_id): series.index.values}
         )
-        df = df.merge(partition_df, on=_labels_col(klee_dataset_id))
+        df = df.merge(partition_df, on=_labels_col(ktk_cube_dataset_id))
 
     # non-partition indices are not required anymore
-    df = df.loc[:, [_labels_col(klee_dataset_id)] + all_klee_partition_cols].copy()
+    df = df.loc[:, [_labels_col(ktk_cube_dataset_id)] + all_ktk_cube_partition_cols].copy()
 
     # compactify labels
-    df = aggregate_to_lists(df, all_klee_partition_cols, _labels_col(klee_dataset_id))
+    df = aggregate_to_lists(df, all_ktk_cube_partition_cols, _labels_col(ktk_cube_dataset_id))
 
     return df
 
@@ -139,7 +139,7 @@ def _create_aligned_partition_df(
     The output will have a single row per partition that shares the same physical partition and the same partition-by
     attributes. For this, the following columns are present:
 
-    - ``'__klee_labels_<klee dataset ID>'``: a column per dataset w/ either NULL or a list of labels that belong to the
+    - ``'__ktk_cube_labels_<ktk_cube dataset ID>'``: a column per dataset w/ either NULL or a list of labels that belong to the
       partition entry
     - physical partition columns
     - additional partition-by columns
@@ -153,9 +153,9 @@ def _create_aligned_partition_df(
     intention: kartothek.io_components.cube.query._intention.QueryIntention
         Query intention.
     indexed_columns: Dict[str, Set[str]]
-        Indexed columns per klee dataset ID.
+        Indexed columns per ktk_cube dataset ID.
     restrictive_dataset_ids: Set[str]
-        Datasets (by Klee dataset ID) that are restrictive during the join process.
+        Datasets (by Ktk_cube dataset ID) that are restrictive during the join process.
 
     Returns
     -------
@@ -172,24 +172,24 @@ def _create_aligned_partition_df(
     dfs_restrict = []
     dfs_other = []
 
-    for klee_dataset_id, ds in datasets.items():
-        preconditions = intention.conditions_pre.get(klee_dataset_id, Conjunction([]))
+    for ktk_cube_dataset_id, ds in datasets.items():
+        preconditions = intention.conditions_pre.get(ktk_cube_dataset_id, Conjunction([]))
         local_partition_by = sorted(
-            indexed_columns[klee_dataset_id] & set(intention.partition_by)
+            indexed_columns[ktk_cube_dataset_id] & set(intention.partition_by)
         )
         df = _create_dataset_df(
             preconditions=preconditions,
-            klee_dataset_id=klee_dataset_id,
+            ktk_cube_dataset_id=ktk_cube_dataset_id,
             ds=ds,
             cube=cube,
             local_partition_by=local_partition_by,
         )
 
         # categorize
-        if klee_dataset_id == cube.seed_dataset:
+        if ktk_cube_dataset_id == cube.seed_dataset:
             assert df_seed is None
             df_seed = df
-        elif klee_dataset_id in restrictive_dataset_ids:
+        elif ktk_cube_dataset_id in restrictive_dataset_ids:
             dfs_restrict.append(df)
         else:
             dfs_other.append(df)
@@ -224,7 +224,7 @@ def _regroup(df_aligned, intention, indexed_columns, datasets, cube):
     intention: kartothek.io_components.cube.query._intention.QueryIntention
         Query intention.
     indexed_columns: Dict[str, Set[str]]
-        Indexed columns per klee dataset ID.
+        Indexed columns per ktk_cube dataset ID.
     datasets: Dict[str, kartothek.DatasetMetadata]
         Datasets that are processed by the regrouper.
     cube: Cube
@@ -246,12 +246,12 @@ def _regroup(df_aligned, intention, indexed_columns, datasets, cube):
     group2cond = {}
     # figure out which datasets are affected by which additional condition
     extra_conditions_target = {}
-    for klee_dataset_id, cols in indexed_columns.items():
-        if klee_dataset_id not in datasets:
+    for ktk_cube_dataset_id, cols in indexed_columns.items():
+        if ktk_cube_dataset_id not in datasets:
             # may be irrelevant
             continue
         for col in cols & set(partition_by):
-            extra_conditions_target[col] = klee_dataset_id
+            extra_conditions_target[col] = ktk_cube_dataset_id
 
     # generate groups
     for g, df_g in df_aligned.groupby(list(partition_by), sort=True):
@@ -265,9 +265,9 @@ def _regroup(df_aligned, intention, indexed_columns, datasets, cube):
                 # we do not need predicate pushdown for physical partition columns
                 continue
 
-            klee_dataset_id = extra_conditions_target[col]
-            conditions_g[klee_dataset_id] = conditions_g.get(
-                klee_dataset_id, Conjunction([])
+            ktk_cube_dataset_id = extra_conditions_target[col]
+            conditions_g[ktk_cube_dataset_id] = conditions_g.get(
+                ktk_cube_dataset_id, Conjunction([])
             ) & (C(col) == g_part)
 
         _aligned_df_to_label2gp(df_g, datasets, gid, label2gp)
@@ -295,8 +295,8 @@ def _map_ktk_mps_to_groups(cube, datasets, label2gp):
         Maps "group ID -> (partition ID -> (dataset ID -> list of MetaPartitions))"
     """
     groups = defaultdict(lambda: defaultdict(lambda: defaultdict(list)))
-    for klee_dataset_id, ds in datasets.items():
-        label2gp_sub = label2gp[klee_dataset_id]
+    for ktk_cube_dataset_id, ds in datasets.items():
+        label2gp_sub = label2gp[ktk_cube_dataset_id]
         for mp in dispatch_metapartitions_from_factory(
             dataset_factory=metadata_factory_from_dataset(ds),
             concat_partitions_on_primary_index=False,
@@ -305,7 +305,7 @@ def _map_ktk_mps_to_groups(cube, datasets, label2gp):
                 # filtered out by pre-condition
                 continue
             for group_id, partition_id in label2gp_sub[mp.label]:
-                groups[group_id][partition_id][klee_dataset_id].append(mp)
+                groups[group_id][partition_id][ktk_cube_dataset_id].append(mp)
 
     return groups
 
@@ -331,13 +331,13 @@ def regroup(
     datasets: Dict[str, kartothek.DatasetMetadata]
         Datasets that are relevant (i.e. have columns that should be loaded).
     indexed_columns: Dict[str, Set[str]]
-        Indexed columns per klee dataset ID.
+        Indexed columns per ktk_cube dataset ID.
     empty_df: Dict[str, pandas.DataFrame]
         Empty DataFrame for each dataset ID.
     load_columns: Dict[str, Set[str]]
         Columns to load.
     restrictive_dataset_ids: Set[str]
-        Datasets (by Klee dataset ID) that are restrictive during the join process.
+        Datasets (by Ktk_cube dataset ID) that are restrictive during the join process.
 
     Returns
     -------
@@ -365,12 +365,12 @@ def regroup(
     for group_id in sorted(groups.keys()):
         # strip defaultdicts here
         metapartitions = {
-            partition_id: {klee_dataset_id: mps for klee_dataset_id, mps in sub.items()}
+            partition_id: {ktk_cube_dataset_id: mps for ktk_cube_dataset_id, mps in sub.items()}
             for partition_id, sub in groups[group_id].items()
         }
         predicates = {
-            klee_dataset_id: [cond.predicate]
-            for klee_dataset_id, cond in group2cond[group_id].items()
+            ktk_cube_dataset_id: [cond.predicate]
+            for ktk_cube_dataset_id, cond in group2cond[group_id].items()
         }
         result.append(
             QueryGroup(

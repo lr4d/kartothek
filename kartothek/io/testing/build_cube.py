@@ -7,11 +7,11 @@ import pytest
 from pandas.arrays import SparseArray
 
 from kartothek.core.cube.constants import (
-    KLEE_DF_SERIALIZER,
-    KLEE_METADATA_DIMENSION_COLUMNS,
-    KLEE_METADATA_KEY_IS_SEED,
-    KLEE_METADATA_PARTITION_COLUMNS,
-    KLEE_METADATA_VERSION,
+    KTK_CUBE_DF_SERIALIZER,
+    KTK_CUBE_METADATA_DIMENSION_COLUMNS,
+    KTK_CUBE_METADATA_KEY_IS_SEED,
+    KTK_CUBE_METADATA_PARTITION_COLUMNS,
+    KTK_CUBE_METADATA_VERSION,
 )
 from kartothek.core.cube.cube import Cube
 from kartothek.core.dataset import DatasetMetadata
@@ -55,7 +55,7 @@ __all__ = (
     "test_metadata",
     "test_nones",
     "test_overwrite",
-    "test_overwrite_rollback_klee",
+    "test_overwrite_rollback_ktk_cube",
     "test_overwrite_rollback_ktk",
     "test_parquet",
     "test_partition_on_enrich_extra",
@@ -227,7 +227,7 @@ def test_parquet(driver, function_store):
         part = ds.partitions[part_key]
         key = part.files[SINGLE_TABLE]
 
-        df_actual = KLEE_DF_SERIALIZER.restore_dataframe(function_store(), key)
+        df_actual = KTK_CUBE_DF_SERIALIZER.restore_dataframe(function_store(), key)
         df_expected = (
             df.loc[df["p"] == p]
             .sort_values(["x", "y"])
@@ -287,31 +287,31 @@ def test_metadata(driver, function_store):
     ds_source = result[cube.seed_dataset]
     assert set(ds_source.metadata.keys()) == {
         "creation_time",
-        KLEE_METADATA_DIMENSION_COLUMNS,
-        KLEE_METADATA_KEY_IS_SEED,
-        KLEE_METADATA_PARTITION_COLUMNS,
+        KTK_CUBE_METADATA_DIMENSION_COLUMNS,
+        KTK_CUBE_METADATA_KEY_IS_SEED,
+        KTK_CUBE_METADATA_PARTITION_COLUMNS,
     }
-    assert ds_source.metadata[KLEE_METADATA_DIMENSION_COLUMNS] == list(
+    assert ds_source.metadata[KTK_CUBE_METADATA_DIMENSION_COLUMNS] == list(
         cube.dimension_columns
     )
-    assert ds_source.metadata[KLEE_METADATA_KEY_IS_SEED] is True
-    assert ds_source.metadata[KLEE_METADATA_PARTITION_COLUMNS] == list(
+    assert ds_source.metadata[KTK_CUBE_METADATA_KEY_IS_SEED] is True
+    assert ds_source.metadata[KTK_CUBE_METADATA_PARTITION_COLUMNS] == list(
         cube.partition_columns
     )
 
     ds_enrich = result["enrich"]
     assert set(ds_enrich.metadata.keys()) == {
         "creation_time",
-        KLEE_METADATA_DIMENSION_COLUMNS,
-        KLEE_METADATA_KEY_IS_SEED,
-        KLEE_METADATA_PARTITION_COLUMNS,
+        KTK_CUBE_METADATA_DIMENSION_COLUMNS,
+        KTK_CUBE_METADATA_KEY_IS_SEED,
+        KTK_CUBE_METADATA_PARTITION_COLUMNS,
         "foo",
     }
-    assert ds_enrich.metadata[KLEE_METADATA_DIMENSION_COLUMNS] == list(
+    assert ds_enrich.metadata[KTK_CUBE_METADATA_DIMENSION_COLUMNS] == list(
         cube.dimension_columns
     )
-    assert ds_enrich.metadata[KLEE_METADATA_KEY_IS_SEED] is False
-    assert ds_enrich.metadata[KLEE_METADATA_PARTITION_COLUMNS] == list(
+    assert ds_enrich.metadata[KTK_CUBE_METADATA_KEY_IS_SEED] is False
+    assert ds_enrich.metadata[KTK_CUBE_METADATA_PARTITION_COLUMNS] == list(
         cube.partition_columns
     )
     assert ds_enrich.metadata["foo"] == 1
@@ -345,7 +345,7 @@ def test_fails_metadata_unknown_id(driver, function_store):
     )
     with pytest.raises(
         ValueError,
-        match="Provided metadata for otherwise unspecified klee_dataset_ids: bar, foo",
+        match="Provided metadata for otherwise unspecified ktk_cube_dataset_ids: bar, foo",
     ):
         driver(
             data={"source": df_source},
@@ -959,7 +959,7 @@ def test_fail_all_empty(driver, function_store):
     assert not DatasetMetadata.exists(cube.ktk_dataset_uuid("enrich"), function_store())
 
 
-def test_overwrite_rollback_klee(driver, function_store):
+def test_overwrite_rollback_ktk_cube(driver, function_store):
     """
     Checks that require a rollback (like overlapping columns) should recover the former state correctly.
     """
@@ -1071,7 +1071,7 @@ def test_overwrite_rollback_ktk(driver, function_store):
         dfs=[{"ktk_source": df_source1, "ktk_enrich": df_enrich1}],
         store=function_store,
         dataset_uuid=cube.ktk_dataset_uuid(cube.seed_dataset),
-        metadata_version=KLEE_METADATA_VERSION,
+        metadata_version=KTK_CUBE_METADATA_VERSION,
     )
 
     df_source2 = pd.DataFrame(
@@ -1114,7 +1114,7 @@ def test_overwrite_rollback_ktk(driver, function_store):
 @pytest.mark.parametrize("none_first", [False, True])
 def test_nones(driver, function_store, none_first, driver_name):
     """
-    Test what happens if user passes None to klee.
+    Test what happens if user passes None to ktk_cube.
     """
     if driver_name == "dask_dataframe":
         pytest.skip("user cannot create None-partitions with dask.dataframe")
@@ -1187,12 +1187,12 @@ def test_fail_wrong_dataset_ids(driver, function_store, skip_eager, driver_name)
             data={"source": df_source, "enrich": df_enrich},
             cube=cube,
             store=function_store,
-            klee_dataset_ids=["source", "extra"],
+            ktk_cube_dataset_ids=["source", "extra"],
         )
 
     assert (
-        'Klee Dataset ID "enrich" is present during pipeline execution but was not '
-        "specified in klee_dataset_ids (extra, source)." in str(exc.value)
+        'Ktk_cube Dataset ID "enrich" is present during pipeline execution but was not '
+        "specified in ktk_cube_dataset_ids (extra, source)." in str(exc.value)
     )
 
 

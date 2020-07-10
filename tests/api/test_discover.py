@@ -7,15 +7,15 @@ from kartothek.api.discover import (
     discover_cube,
     discover_datasets,
     discover_datasets_unchecked,
-    discover_klee_dataset_ids,
+    discover_ktk_cube_dataset_ids,
 )
 from kartothek.core.cube.constants import (
-    KLEE_DF_SERIALIZER,
-    KLEE_METADATA_DIMENSION_COLUMNS,
-    KLEE_METADATA_KEY_IS_SEED,
-    KLEE_METADATA_PARTITION_COLUMNS,
-    KLEE_METADATA_STORAGE_FORMAT,
-    KLEE_METADATA_VERSION,
+    KTK_CUBE_DF_SERIALIZER,
+    KTK_CUBE_METADATA_DIMENSION_COLUMNS,
+    KTK_CUBE_METADATA_KEY_IS_SEED,
+    KTK_CUBE_METADATA_PARTITION_COLUMNS,
+    KTK_CUBE_METADATA_STORAGE_FORMAT,
+    KTK_CUBE_METADATA_VERSION,
 )
 from kartothek.core.cube.cube import Cube
 from kartothek.core.uuid import gen_uuid
@@ -43,11 +43,11 @@ def store_data(
     df,
     name,
     partition_on="default",
-    metadata_version=KLEE_METADATA_VERSION,
-    metadata_storage_format=KLEE_METADATA_STORAGE_FORMAT,
+    metadata_version=KTK_CUBE_METADATA_VERSION,
+    metadata_storage_format=KTK_CUBE_METADATA_STORAGE_FORMAT,
     metadata=None,
     overwrite=False,
-    new_klee_metadata=True,
+    new_ktk_cube_metadata=True,
 ):
     if partition_on == "default":
         partition_on = cube.partition_columns
@@ -69,11 +69,11 @@ def store_data(
 
     if metadata is None:
         metadata = {
-            KLEE_METADATA_DIMENSION_COLUMNS: cube.dimension_columns,
-            KLEE_METADATA_KEY_IS_SEED: (name == cube.seed_dataset),
+            KTK_CUBE_METADATA_DIMENSION_COLUMNS: cube.dimension_columns,
+            KTK_CUBE_METADATA_KEY_IS_SEED: (name == cube.seed_dataset),
         }
-        if new_klee_metadata:
-            metadata.update({KLEE_METADATA_PARTITION_COLUMNS: cube.partition_columns})
+        if new_ktk_cube_metadata:
+            metadata.update({KTK_CUBE_METADATA_PARTITION_COLUMNS: cube.partition_columns})
 
     return store_dataframes_as_dataset(
         store=function_store,
@@ -82,7 +82,7 @@ def store_data(
         partition_on=list(partition_on) if partition_on else None,
         metadata_storage_format=metadata_storage_format,
         metadata_version=metadata_version,
-        df_serializer=KLEE_DF_SERIALIZER,
+        df_serializer=KTK_CUBE_DF_SERIALIZER,
         metadata=metadata,
         overwrite=overwrite,
     )
@@ -104,25 +104,25 @@ def assert_dataset_issubset(superset, subset):
         assert subset[k].uuid == superset[k].uuid
 
 
-def test_discover_klee_dataset_ids(function_store):
+def test_discover_ktk_cube_dataset_ids(function_store):
     cube = Cube(
         dimension_columns=["dim"],
         partition_columns=["part"],
         uuid_prefix="cube",
         seed_dataset="seed",
     )
-    klee_dataset_ids = ["A", "B", "C"]
-    for klee_id in klee_dataset_ids:
+    ktk_cube_dataset_ids = ["A", "B", "C"]
+    for ktk_cube_id in ktk_cube_dataset_ids:
         store_data(
             cube=cube,
             function_store=function_store,
             df=pd.DataFrame({"dim": [0], "part": [0]}),
-            name=klee_id,
+            name=ktk_cube_id,
         )
-    collected_klee_dataset_ids = discover_klee_dataset_ids(
+    collected_ktk_cube_dataset_ids = discover_ktk_cube_dataset_ids(
         cube.uuid_prefix, function_store()
     )
-    assert collected_klee_dataset_ids == set(klee_dataset_ids)
+    assert collected_ktk_cube_dataset_ids == set(ktk_cube_dataset_ids)
 
 
 class TestDiscoverDatasetsUnchecked:
@@ -213,13 +213,13 @@ class TestDiscoverDatasetsUnchecked:
         )
         expected = {"enrich": enrich_dataset}
         actual = discover_datasets_unchecked(
-            cube.uuid_prefix, function_store, filter_klee_dataset_ids=["enrich"]
+            cube.uuid_prefix, function_store, filter_ktk_cube_dataset_ids=["enrich"]
         )
         assert_dataset_issubset(actual, expected)
 
     def test_filter_no_datasets_found(self, cube, function_store):
         actual = discover_datasets_unchecked(
-            cube.uuid_prefix, function_store, filter_klee_dataset_ids=["enrich"]
+            cube.uuid_prefix, function_store, filter_ktk_cube_dataset_ids=["enrich"]
         )
         assert actual == {}
 
@@ -438,7 +438,7 @@ class TestDiscoverDatasets:
             df=MetaPartition(
                 label=gen_uuid(),
                 data={"foo": pd.DataFrame({"x": [0], "y": [0], "p": [0], "q": [0]})},
-                metadata_version=KLEE_METADATA_VERSION,
+                metadata_version=KTK_CUBE_METADATA_VERSION,
             ),
             name=cube.seed_dataset,
         )
@@ -461,7 +461,7 @@ class TestDiscoverDatasets:
                     ),
                     "foo": pd.DataFrame({"x": [0], "y": [0], "p": [0], "q": [0]}),
                 },
-                metadata_version=KLEE_METADATA_VERSION,
+                metadata_version=KTK_CUBE_METADATA_VERSION,
             ).build_indices(["x", "y"]),
             name=cube.seed_dataset,
         )
@@ -531,7 +531,7 @@ class TestDiscoverDatasets:
             df=MetaPartition(
                 label=gen_uuid(),
                 data={SINGLE_TABLE: pd.DataFrame({"x": [0], "p": [0], "q": [0]})},
-                metadata_version=KLEE_METADATA_VERSION,
+                metadata_version=KTK_CUBE_METADATA_VERSION,
             ).build_indices(["x"]),
             name=cube.seed_dataset,
         )
@@ -570,7 +570,7 @@ class TestDiscoverDatasets:
                 data={
                     SINGLE_TABLE: pd.DataFrame({"x": [0], "y": [0], "p": [0], "q": [0]})
                 },
-                metadata_version=KLEE_METADATA_VERSION,
+                metadata_version=KTK_CUBE_METADATA_VERSION,
             ),
             name=cube.seed_dataset,
         )
@@ -590,7 +590,7 @@ class TestDiscoverDatasets:
                 data={
                     SINGLE_TABLE: pd.DataFrame({"x": [0], "y": [0], "p": [0], "q": [0]})
                 },
-                metadata_version=KLEE_METADATA_VERSION,
+                metadata_version=KTK_CUBE_METADATA_VERSION,
             ).build_indices(["x", "y"]),
             name=cube.seed_dataset,
         )
@@ -604,7 +604,7 @@ class TestDiscoverDatasets:
                         {"x": [0], "y": [0], "p": [0], "q": [0], "i1": [1337]}
                     )
                 },
-                metadata_version=KLEE_METADATA_VERSION,
+                metadata_version=KTK_CUBE_METADATA_VERSION,
             ),
             name="enrich",
         )
@@ -627,7 +627,7 @@ class TestDiscoverDatasets:
                             {"x": [0], "y": [0], "p": [0], "q": [0], "v1": [0]}
                         )
                     },
-                    metadata_version=KLEE_METADATA_VERSION,
+                    metadata_version=KTK_CUBE_METADATA_VERSION,
                 ).build_indices(["x", "y", "v1"]),
                 name=cube.seed_dataset,
             ),
@@ -648,7 +648,7 @@ class TestDiscoverDatasets:
                             }
                         )
                     },
-                    metadata_version=KLEE_METADATA_VERSION,
+                    metadata_version=KTK_CUBE_METADATA_VERSION,
                 ).build_indices(["i1", "x", "v2"]),
                 name="enrich",
             ),
@@ -674,7 +674,7 @@ class TestDiscoverDatasets:
                             {"x": [0], "y": [0], "i1": [1337], "v2": [42]}
                         )
                     },
-                    metadata_version=KLEE_METADATA_VERSION,
+                    metadata_version=KTK_CUBE_METADATA_VERSION,
                 ),
                 name="enrich",
                 partition_on=["i1"],
@@ -716,7 +716,7 @@ class TestDiscoverDatasets:
                             {"x": [0], "y": [0], "p": [0], "q": [0]}
                         )
                     },
-                    metadata_version=KLEE_METADATA_VERSION,
+                    metadata_version=KTK_CUBE_METADATA_VERSION,
                 ).build_indices(["x", "y"]),
                 name=cube.seed_dataset,
             ),
@@ -730,7 +730,7 @@ class TestDiscoverDatasets:
                             {"x": [0], "p": [0], "q": [0], "v1": [42]}
                         )
                     },
-                    metadata_version=KLEE_METADATA_VERSION,
+                    metadata_version=KTK_CUBE_METADATA_VERSION,
                 ),
                 name="x",
             ),
@@ -744,7 +744,7 @@ class TestDiscoverDatasets:
                             {"y": [0], "p": [0], "q": [0], "v2": [42]}
                         )
                     },
-                    metadata_version=KLEE_METADATA_VERSION,
+                    metadata_version=KTK_CUBE_METADATA_VERSION,
                 ),
                 name="y",
             ),
@@ -843,7 +843,7 @@ class TestDiscoverDatasets:
             discover_datasets(
                 cube,
                 function_store,
-                filter_klee_dataset_ids=["enrich", "non_existing_table"],
+                filter_ktk_cube_dataset_ids=["enrich", "non_existing_table"],
             )
         assert (
             str(exc.value)
@@ -855,7 +855,7 @@ class TestDiscoverDatasets:
             discover_datasets(
                 cube,
                 function_store,
-                filter_klee_dataset_ids=["enrich", "non_existing_table"],
+                filter_ktk_cube_dataset_ids=["enrich", "non_existing_table"],
             )
         assert (
             str(exc.value)
@@ -898,10 +898,10 @@ class TestDiscoverDatasets:
             ),
         }
         expected = {
-            filter_klee_dataset_id: update_dataset_from_dataframes(
+            filter_ktk_cube_dataset_id: update_dataset_from_dataframes(
                 [], store=function_store, dataset_uuid=ds.uuid, delete_scope=[{}]
             )
-            for filter_klee_dataset_id, ds in expected.items()
+            for filter_ktk_cube_dataset_id, ds in expected.items()
         }
         actual = discover_datasets(cube, function_store)
         assert_datasets_equal(actual, expected)
@@ -923,7 +923,7 @@ class TestDiscoverCube:
 
     def test_without_partition_timestamp_metadata(self, cube, function_store):
         # test discovery of a cube without metadata keys
-        # KLEE_METADATA_TIMESTAMP_COLUMN and KLEE_METADATA_PARTITION_COLUMNS still works
+        # KTK_CUBE_METADATA_PARTITION_COLUMNS still works
         store_data(
             cube=cube,
             function_store=function_store,
@@ -933,13 +933,13 @@ class TestDiscoverCube:
                     "y": [0],
                     "p": [0],
                     "q": [0],
-                    "KLEE_TS": [pd.Timestamp("2000")],
+                    "KTK_CUBE_TS": [pd.Timestamp("2000")],
                     "i1": [0],
                 }
             ),
-            partition_on=["p", "q", "KLEE_TS"],
+            partition_on=["p", "q", "KTK_CUBE_TS"],
             name=cube.seed_dataset,
-            new_klee_metadata=False,
+            new_ktk_cube_metadata=False,
         )
         cube_actual, datasets = discover_cube(cube.uuid_prefix, function_store)
         assert cube_actual == cube
@@ -1006,14 +1006,14 @@ class TestDiscoverCube:
             function_store=function_store,
             df=pd.DataFrame({"x": [0], "y": [0], "p": [0], "q": [0]}),
             name=cube.seed_dataset,
-            metadata={KLEE_METADATA_KEY_IS_SEED: True},
+            metadata={KTK_CUBE_METADATA_KEY_IS_SEED: True},
         )
         store_data(
             cube=cube,
             function_store=function_store,
             df=pd.DataFrame({"x": [0], "p": [0], "q": [0], "i1": [0]}),
             name="enrich",
-            metadata={KLEE_METADATA_KEY_IS_SEED: True},
+            metadata={KTK_CUBE_METADATA_KEY_IS_SEED: True},
         )
         with pytest.raises(ValueError) as exc:
             discover_cube(cube.uuid_prefix, function_store)
@@ -1028,7 +1028,7 @@ class TestDiscoverCube:
             function_store=function_store,
             df=pd.DataFrame({"x": [0], "y": [0], "p": [0], "q": [0]}),
             name=cube.seed_dataset,
-            metadata={KLEE_METADATA_KEY_IS_SEED: True},
+            metadata={KTK_CUBE_METADATA_KEY_IS_SEED: True},
         )
         with pytest.raises(ValueError) as exc:
             discover_cube(cube.uuid_prefix, function_store)
@@ -1044,7 +1044,7 @@ class TestDiscoverCube:
             df=pd.DataFrame({"x": [0], "y": [0], "p": [0], "q": [0]}),
             name=cube.seed_dataset,
             partition_on=None,
-            new_klee_metadata=False,
+            new_ktk_cube_metadata=False,
         )
         with pytest.raises(ValueError) as exc:
             discover_cube(cube.uuid_prefix, function_store)
@@ -1098,36 +1098,20 @@ class TestDiscoverCube:
                     "y": [0],
                     "p": [0],
                     "q": [0],
-                    "KLEE_TS": [pd.Timestamp("2000")],
+                    "KTK_CUBE_TS": [pd.Timestamp("2000")],
                 }
             ),
-            partition_on=["KLEE_TS"],
+            partition_on=["KTK_CUBE_TS"],
             name=cube.seed_dataset,
-            new_klee_metadata=False,
+            new_ktk_cube_metadata=False,
         )
         with pytest.raises(ValueError) as exc:
             discover_cube(cube.uuid_prefix, function_store)
         assert (
             str(exc.value)
-            == 'Seed dataset ("myseed") has only a single partition key (KLEE_TS) but should have at least 2.'
+            == 'Seed dataset ("myseed") has only a single partition key (KTK_CUBE_TS) but should have at least 2.'
         )
 
-    def test_raises_timestamp_col_is_not_klee_ts(self, cube, function_store):
-        store_data(
-            cube=cube,
-            function_store=function_store,
-            df=pd.DataFrame(
-                {"x": [0], "y": [0], "p": [0], "q": [0], "ts": [pd.Timestamp("2000")]}
-            ),
-            partition_on=["p", "q", "ts"],
-            name=cube.seed_dataset,
-            new_klee_metadata=False,
-        )
-        with pytest.raises(
-            NotImplementedError,
-            match="Can only read old cubes if the timestamp column is 'KLEE_TS', but 'ts' was detected.",
-        ):
-            discover_cube(cube.uuid_prefix, function_store)
 
     def test_raises_partition_keys_impossible(self, cube, function_store):
         store_data(

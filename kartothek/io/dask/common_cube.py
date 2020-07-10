@@ -9,9 +9,9 @@ import dask.bag as db
 from kartothek.api.consistency import get_cube_payload
 from kartothek.api.discover import discover_datasets, discover_datasets_unchecked
 from kartothek.core.cube.constants import (
-    KLEE_DF_SERIALIZER,
-    KLEE_METADATA_STORAGE_FORMAT,
-    KLEE_METADATA_VERSION,
+    KTK_CUBE_DF_SERIALIZER,
+    KTK_CUBE_METADATA_STORAGE_FORMAT,
+    KTK_CUBE_METADATA_VERSION,
 )
 from kartothek.io_components.cube.append import check_existing_datasets
 from kartothek.io_components.cube.common import check_blocksize, check_store_factory
@@ -46,7 +46,7 @@ __all__ = (
 
 
 def build_cube_from_bag_internal(
-    data, cube, store, klee_dataset_ids, metadata, overwrite, partition_on
+    data, cube, store, ktk_cube_dataset_ids, metadata, overwrite, partition_on
 ):
     """
     Create dask computation graph that builds a cube with the data supplied from a dask bag.
@@ -59,7 +59,7 @@ def build_cube_from_bag_internal(
         Cube specification.
     store: Callable[[], simplekv.KeyValueStore]
         Store to which the data should be written to.
-    klee_dataset_ids: Optional[Iterable[str]]
+    ktk_cube_dataset_ids: Optional[Iterable[str]]
         Datasets that will be written, must be specified in advance. If left unprovided, it is assumed that only the
         seed dataset will be written.
     metadata: Optional[Dict[str, Dict[str, Any]]]
@@ -78,19 +78,19 @@ def build_cube_from_bag_internal(
     """
     check_store_factory(store)
 
-    if klee_dataset_ids is None:
-        klee_dataset_ids = [cube.seed_dataset]
+    if ktk_cube_dataset_ids is None:
+        ktk_cube_dataset_ids = [cube.seed_dataset]
     else:
-        klee_dataset_ids = sorted(klee_dataset_ids)
+        ktk_cube_dataset_ids = sorted(ktk_cube_dataset_ids)
 
-    metadata = check_provided_metadata_dict(metadata, klee_dataset_ids)
+    metadata = check_provided_metadata_dict(metadata, ktk_cube_dataset_ids)
     existing_datasets = discover_datasets_unchecked(cube.uuid_prefix, store)
-    check_datasets_prebuild(klee_dataset_ids, cube, existing_datasets)
-    partition_on = prepare_ktk_partition_on(cube, klee_dataset_ids, partition_on)
+    check_datasets_prebuild(ktk_cube_dataset_ids, cube, existing_datasets)
+    partition_on = prepare_ktk_partition_on(cube, ktk_cube_dataset_ids, partition_on)
 
     data = (
         data.map(multiplex_user_input, cube=cube)
-        .map(_check_dataset_ids, klee_dataset_ids=klee_dataset_ids)
+        .map(_check_dataset_ids, ktk_cube_dataset_ids=ktk_cube_dataset_ids)
         .map(
             _multiplex_prepare_data_for_ktk,
             cube=cube,
@@ -103,10 +103,10 @@ def build_cube_from_bag_internal(
         bag=data,
         store=store,
         cube=cube,
-        klee_dataset_ids=klee_dataset_ids,
+        ktk_cube_dataset_ids=ktk_cube_dataset_ids,
         metadata={
-            klee_dataset_id: prepare_ktk_metadata(cube, klee_dataset_id, metadata)
-            for klee_dataset_id in klee_dataset_ids
+            ktk_cube_dataset_id: prepare_ktk_metadata(cube, ktk_cube_dataset_id, metadata)
+            for ktk_cube_dataset_id in ktk_cube_dataset_ids
         },
         overwrite=overwrite,
         update=False,
@@ -124,7 +124,7 @@ def build_cube_from_bag_internal(
 
 
 def extend_cube_from_bag_internal(
-    data, cube, store, klee_dataset_ids, metadata, overwrite, partition_on
+    data, cube, store, ktk_cube_dataset_ids, metadata, overwrite, partition_on
 ):
     """
     Create dask computation graph that extends a cube by the data supplied from a dask bag.
@@ -139,7 +139,7 @@ def extend_cube_from_bag_internal(
         Cube specification.
     store: simplekv.KeyValueStore
         Store to which the data should be written to.
-    klee_dataset_ids: Optional[Iterable[str]]
+    ktk_cube_dataset_ids: Optional[Iterable[str]]
         Datasets that will be written, must be specified in advance.
     metadata: Optional[Dict[str, Dict[str, Any]]]
         Metadata for every dataset.
@@ -156,17 +156,17 @@ def extend_cube_from_bag_internal(
         The bag has a single partition with a single element.
     """
     check_store_factory(store)
-    check_datasets_preextend(klee_dataset_ids, cube)
-    klee_dataset_ids = sorted(klee_dataset_ids)
-    metadata = check_provided_metadata_dict(metadata, klee_dataset_ids)
-    partition_on = prepare_ktk_partition_on(cube, klee_dataset_ids, partition_on)
+    check_datasets_preextend(ktk_cube_dataset_ids, cube)
+    ktk_cube_dataset_ids = sorted(ktk_cube_dataset_ids)
+    metadata = check_provided_metadata_dict(metadata, ktk_cube_dataset_ids)
+    partition_on = prepare_ktk_partition_on(cube, ktk_cube_dataset_ids, partition_on)
 
     existing_datasets = discover_datasets(cube, store)
     if overwrite:
         existing_datasets_cut = {
-            klee_dataset_id: ds
-            for klee_dataset_id, ds in existing_datasets.items()
-            if klee_dataset_id not in klee_dataset_ids
+            ktk_cube_dataset_id: ds
+            for ktk_cube_dataset_id, ds in existing_datasets.items()
+            if ktk_cube_dataset_id not in ktk_cube_dataset_ids
         }
     else:
         existing_datasets_cut = existing_datasets
@@ -174,7 +174,7 @@ def extend_cube_from_bag_internal(
 
     data = (
         data.map(multiplex_user_input, cube=cube)
-        .map(_check_dataset_ids, klee_dataset_ids=klee_dataset_ids)
+        .map(_check_dataset_ids, ktk_cube_dataset_ids=ktk_cube_dataset_ids)
         .map(
             _multiplex_prepare_data_for_ktk,
             cube=cube,
@@ -187,10 +187,10 @@ def extend_cube_from_bag_internal(
         bag=data,
         store=store,
         cube=cube,
-        klee_dataset_ids=klee_dataset_ids,
+        ktk_cube_dataset_ids=ktk_cube_dataset_ids,
         metadata={
-            klee_dataset_id: prepare_ktk_metadata(cube, klee_dataset_id, metadata)
-            for klee_dataset_id in klee_dataset_ids
+            ktk_cube_dataset_id: prepare_ktk_metadata(cube, ktk_cube_dataset_id, metadata)
+            for ktk_cube_dataset_id in ktk_cube_dataset_ids
         },
         overwrite=overwrite,
         update=False,
@@ -232,7 +232,7 @@ def query_cube_bag_internal(
         Conditions that should be applied, optional.
     datasets: Union[None, Iterable[str], Dict[str, kartothek.DatasetMetadata]]
         Datasets to query, must all be part of the cube. May be either the result of :meth:`discover_datasets`, a list
-        of Klee dataset ID or ``None`` (in which case auto-discovery will be used).
+        of Ktk_cube dataset ID or ``None`` (in which case auto-discovery will be used).
     dimension_columns: Union[None, str, Iterable[str]]
         Dimension columns of the query, may result in projection. If not provided, dimension columns from cube
         specification will be used.
@@ -289,7 +289,7 @@ def query_cube_bag_internal(
     return empty, b
 
 
-def append_to_cube_from_bag_internal(data, cube, store, klee_dataset_ids, metadata):
+def append_to_cube_from_bag_internal(data, cube, store, ktk_cube_dataset_ids, metadata):
     """
     Append data to existing cube.
 
@@ -313,7 +313,7 @@ def append_to_cube_from_bag_internal(data, cube, store, klee_dataset_ids, metada
         Cube specification.
     store: Callable[[], simplekv.KeyValueStore]
         Store to which the data should be written to.
-    klee_dataset_ids: Optional[Iterable[str]]
+    ktk_cube_dataset_ids: Optional[Iterable[str]]
         Datasets that will be written, must be specified in advance.
     metadata: Dict[str, Dict[str, Any]]
         Metadata for every dataset, optional. For every dataset, only given keys are updated/replaced. Deletion of
@@ -326,8 +326,8 @@ def append_to_cube_from_bag_internal(data, cube, store, klee_dataset_ids, metada
         objects. The bag has a single partition with a single element.
     """
     check_store_factory(store)
-    klee_dataset_ids = sorted(klee_dataset_ids)
-    metadata = check_provided_metadata_dict(metadata, klee_dataset_ids)
+    ktk_cube_dataset_ids = sorted(ktk_cube_dataset_ids)
+    metadata = check_provided_metadata_dict(metadata, ktk_cube_dataset_ids)
 
     existing_datasets = discover_datasets(cube, store)
     # existing_payload is set to empty because we're not checking against any existing payload. ktk will account for the
@@ -337,12 +337,12 @@ def append_to_cube_from_bag_internal(data, cube, store, klee_dataset_ids, metada
     partition_on = {k: v.partition_keys for k, v in existing_datasets.items()}
 
     check_existing_datasets(
-        existing_datasets=existing_datasets, klee_dataset_ids=klee_dataset_ids
+        existing_datasets=existing_datasets, ktk_cube_dataset_ids=ktk_cube_dataset_ids
     )
 
     data = (
         data.map(multiplex_user_input, cube=cube)
-        .map(_check_dataset_ids, klee_dataset_ids=klee_dataset_ids)
+        .map(_check_dataset_ids, ktk_cube_dataset_ids=ktk_cube_dataset_ids)
         .map(
             _multiplex_prepare_data_for_ktk,
             cube=cube,
@@ -355,10 +355,10 @@ def append_to_cube_from_bag_internal(data, cube, store, klee_dataset_ids, metada
         bag=data,
         store=store,
         cube=cube,
-        klee_dataset_ids=klee_dataset_ids,
+        ktk_cube_dataset_ids=ktk_cube_dataset_ids,
         metadata={
-            klee_dataset_id: prepare_ktk_metadata(cube, klee_dataset_id, metadata)
-            for klee_dataset_id in klee_dataset_ids
+            ktk_cube_dataset_id: prepare_ktk_metadata(cube, ktk_cube_dataset_id, metadata)
+            for ktk_cube_dataset_id in ktk_cube_dataset_ids
         },
         update=True,
         existing_datasets=existing_datasets,
@@ -399,16 +399,16 @@ def _quick_concat_or_none(dfs, dimension_columns, partition_columns):
         return None
 
 
-def _check_dataset_ids(dct, klee_dataset_ids):
+def _check_dataset_ids(dct, ktk_cube_dataset_ids):
     for ds_name in sorted(dct.keys()):
-        if ds_name not in klee_dataset_ids:
+        if ds_name not in ktk_cube_dataset_ids:
             raise ValueError(
                 (
-                    'Klee Dataset ID "{ds_name}" is present during pipeline execution but was not specified in '
-                    "klee_dataset_ids ({klee_dataset_ids})."
+                    'Ktk_cube Dataset ID "{ds_name}" is present during pipeline execution but was not specified in '
+                    "ktk_cube_dataset_ids ({ktk_cube_dataset_ids})."
                 ).format(
                     ds_name=ds_name,
-                    klee_dataset_ids=", ".join(sorted(klee_dataset_ids)),
+                    ktk_cube_dataset_ids=", ".join(sorted(ktk_cube_dataset_ids)),
                 )
             )
 
@@ -419,7 +419,7 @@ def _store_bag_as_dataset_parallel(
     bag,
     store,
     cube,
-    klee_dataset_ids,
+    ktk_cube_dataset_ids,
     metadata,
     existing_datasets,
     overwrite=False,
@@ -430,9 +430,9 @@ def _store_bag_as_dataset_parallel(
     store datasets in parallel (e.g. from a dict).
     """
     if (not update) and (not overwrite):
-        for klee_dataset_id in klee_dataset_ids:
+        for ktk_cube_dataset_id in ktk_cube_dataset_ids:
             raise_if_dataset_exists(
-                dataset_uuid=cube.ktk_dataset_uuid(klee_dataset_id), store=store
+                dataset_uuid=cube.ktk_dataset_uuid(ktk_cube_dataset_id), store=store
             )
 
     mps = bag.map(_multiplex_parse_input_to_metapartition)
@@ -462,7 +462,7 @@ def _multiplex_prepare_data_for_ktk(data, cube, existing_payload, partition_on):
         v = data.pop(k)
         result[k] = prepare_data_for_ktk(
             v,
-            klee_dataset_id=k,
+            ktk_cube_dataset_id=k,
             cube=cube,
             existing_payload=existing_payload,
             partition_on=partition_on[k],
@@ -501,7 +501,7 @@ def _multiplex_store_dataset_from_partitions_flat(
                 dataset_metadata=metadata[k],
                 dataset_uuid=cube.ktk_dataset_uuid(k),
                 metadata_merger=None,
-                metadata_storage_format=KLEE_METADATA_STORAGE_FORMAT,
+                metadata_storage_format=KTK_CUBE_METADATA_STORAGE_FORMAT,
                 store=store,
             )
 
@@ -516,7 +516,7 @@ def _multiplex_store(data, cube, store):
         result[k] = MetaPartition.store_dataframes(
             v,
             dataset_uuid=cube.ktk_dataset_uuid(k),
-            df_serializer=KLEE_DF_SERIALIZER,
+            df_serializer=KTK_CUBE_DF_SERIALIZER,
             store=store,
         )
         del v
@@ -528,7 +528,7 @@ def _multiplex_parse_input_to_metapartition(data):
     for k in sorted(data.keys()):
         v = data.pop(k)
         result[k] = parse_input_to_metapartition(
-            v, metadata_version=KLEE_METADATA_VERSION
+            v, metadata_version=KTK_CUBE_METADATA_VERSION
         )
         del v
     return result

@@ -88,7 +88,7 @@ def test_conditions(driver, function_store, existing_cube):
     result = driver(
         cube=existing_cube,
         store=function_store,
-        klee_dataset_ids=["source"],
+        ktk_cube_dataset_ids=["source"],
         conditions=C("p") > 0,
     )
 
@@ -112,20 +112,20 @@ def test_fail_wrong_condition(driver, function_store, existing_cube):
         driver(
             cube=existing_cube,
             store=function_store,
-            klee_dataset_ids=["source"],
+            ktk_cube_dataset_ids=["source"],
             conditions=C("v1") >= 0,
         )
 
 
 def test_fail_id_not_str(driver, function_store, existing_cube):
     with pytest.raises(TypeError, match="Object of type int is not a string: 1"):
-        driver(cube=existing_cube, store=function_store, klee_dataset_ids=[1])
+        driver(cube=existing_cube, store=function_store, ktk_cube_dataset_ids=[1])
 
 
 def test_fail_ids_unknown(driver, function_store, existing_cube):
-    with pytest.raises(ValueError, match="Unknown klee_dataset_ids: bar, foo"):
+    with pytest.raises(ValueError, match="Unknown ktk_cube_dataset_ids: bar, foo"):
         driver(
             cube=existing_cube,
             store=function_store,
-            klee_dataset_ids=["foo", "bar", "source"],
+            ktk_cube_dataset_ids=["foo", "bar", "source"],
         )

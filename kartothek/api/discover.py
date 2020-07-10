@@ -5,11 +5,10 @@ import logging
 
 from kartothek.api.consistency import check_datasets
 from kartothek.core.cube.constants import (
-    KLEE_METADATA_DIMENSION_COLUMNS,
-    KLEE_METADATA_KEY_IS_SEED,
-    KLEE_METADATA_PARTITION_COLUMNS,
-    KLEE_METADATA_TIMESTAMP_COLUMN,
-    KLEE_UUID_SEPERATOR,
+    KTK_CUBE_METADATA_DIMENSION_COLUMNS,
+    KTK_CUBE_METADATA_KEY_IS_SEED,
+    KTK_CUBE_METADATA_PARTITION_COLUMNS,
+    KTK_CUBE_UUID_SEPERATOR,
 )
 from kartothek.core.cube.cube import Cube
 from kartothek.core.dataset import DatasetMetadata
@@ -24,7 +23,7 @@ __all__ = (
     "discover_cube",
     "discover_datasets",
     "discover_datasets_unchecked",
-    "discover_klee_dataset_ids",
+    "discover_ktk_cube_dataset_ids",
 )
 
 
@@ -59,9 +58,9 @@ def _discover_dataset_meta_files(prefix, store):
     return names
 
 
-def discover_klee_dataset_ids(uuid_prefix, store):
+def discover_ktk_cube_dataset_ids(uuid_prefix, store):
     """
-    Get klee dataset ids for all datasets.
+    Get ktk_cube dataset ids for all datasets.
 
     Parameters
     ----------
@@ -73,15 +72,15 @@ def discover_klee_dataset_ids(uuid_prefix, store):
     Returns
     -------
     Set[str]
-        the klee dataset ids
+        the ktk_cube dataset ids
 
     """
-    prefix = uuid_prefix + KLEE_UUID_SEPERATOR
+    prefix = uuid_prefix + KTK_CUBE_UUID_SEPERATOR
     names = _discover_dataset_meta_files(prefix, store)
     return set([name[len(prefix) :] for name in names])
 
 
-def discover_datasets_unchecked(uuid_prefix, store, filter_klee_dataset_ids=None):
+def discover_datasets_unchecked(uuid_prefix, store, filter_ktk_cube_dataset_ids=None):
     """
     Get all known datasets that may belong to a give cube w/o applying any checks.
 
@@ -95,7 +94,7 @@ def discover_datasets_unchecked(uuid_prefix, store, filter_klee_dataset_ids=None
         Dataset UUID prefix.
     store: Union[Callable[[], simplekv.KeyValueStore], simplekv.KeyValueStore]
         KV store.
-    filter_klee_dataset_ids: Union[None, str, Iterable[str]]
+    filter_ktk_cube_dataset_ids: Union[None, str, Iterable[str]]
         Optional selection of datasets to include.
 
     Returns
@@ -105,14 +104,14 @@ def discover_datasets_unchecked(uuid_prefix, store, filter_klee_dataset_ids=None
     """
     if callable(store):
         store = store()
-    filter_klee_dataset_ids = converter_str_set_optional(filter_klee_dataset_ids)
-    prefix = uuid_prefix + KLEE_UUID_SEPERATOR
+    filter_ktk_cube_dataset_ids = converter_str_set_optional(filter_ktk_cube_dataset_ids)
+    prefix = uuid_prefix + KTK_CUBE_UUID_SEPERATOR
 
     names = _discover_dataset_meta_files(prefix, store)
 
-    if filter_klee_dataset_ids is not None:
+    if filter_ktk_cube_dataset_ids is not None:
         names = {
-            name for name in names if name[len(prefix) :] in filter_klee_dataset_ids
+            name for name in names if name[len(prefix) :] in filter_ktk_cube_dataset_ids
         }
 
     result = {}
@@ -131,7 +130,7 @@ def discover_datasets_unchecked(uuid_prefix, store, filter_klee_dataset_ids=None
     return result
 
 
-def discover_datasets(cube, store, filter_klee_dataset_ids=None):
+def discover_datasets(cube, store, filter_ktk_cube_dataset_ids=None):
     """
     Get all known datasets that belong to a give cube.
 
@@ -141,7 +140,7 @@ def discover_datasets(cube, store, filter_klee_dataset_ids=None):
         Cube specification.
     store: Union[Callable[[], simplekv.KeyValueStore], simplekv.KeyValueStore]
         KV store.
-    filter_klee_dataset_ids: Union[None, str, Iterable[str]]
+    filter_ktk_cube_dataset_ids: Union[None, str, Iterable[str]]
         Optional selection of datasets to include.
 
     Returns
@@ -154,12 +153,12 @@ def discover_datasets(cube, store, filter_klee_dataset_ids=None):
     ValueError
         In case no valid cube could be discovered.
     """
-    filter_klee_dataset_ids = converter_str_set_optional(filter_klee_dataset_ids)
+    filter_ktk_cube_dataset_ids = converter_str_set_optional(filter_ktk_cube_dataset_ids)
     result = discover_datasets_unchecked(
-        cube.uuid_prefix, store, filter_klee_dataset_ids
+        cube.uuid_prefix, store, filter_ktk_cube_dataset_ids
     )
-    if filter_klee_dataset_ids is not None:
-        missing = filter_klee_dataset_ids - set(result.keys())
+    if filter_ktk_cube_dataset_ids is not None:
+        missing = filter_ktk_cube_dataset_ids - set(result.keys())
         if missing:
             raise ValueError(
                 "Could not find the following requested datasets: {missing}".format(
@@ -171,7 +170,7 @@ def discover_datasets(cube, store, filter_klee_dataset_ids=None):
     return result
 
 
-def discover_cube(uuid_prefix, store, filter_klee_dataset_ids=None):
+def discover_cube(uuid_prefix, store, filter_ktk_cube_dataset_ids=None):
     """
     Recover cube information from store.
 
@@ -181,7 +180,7 @@ def discover_cube(uuid_prefix, store, filter_klee_dataset_ids=None):
         Dataset UUID prefix.
     store: Union[Callable[[], simplekv.KeyValueStore], simplekv.KeyValueStore]
         KV store.
-    filter_klee_dataset_ids: Union[None, str, Iterable[str]]
+    filter_ktk_cube_dataset_ids: Union[None, str, Iterable[str]]
         Optional selection of datasets to include.
 
     Returns
@@ -191,12 +190,12 @@ def discover_cube(uuid_prefix, store, filter_klee_dataset_ids=None):
     datasets: Dict[str, kartothek.DatasetMetadata]
         All discovered datasets.
     """
-    datasets = discover_datasets_unchecked(uuid_prefix, store, filter_klee_dataset_ids)
+    datasets = discover_datasets_unchecked(uuid_prefix, store, filter_ktk_cube_dataset_ids)
 
     seed_candidates = {
-        klee_dataset_id
-        for klee_dataset_id, ds in datasets.items()
-        if ds.metadata.get(KLEE_METADATA_KEY_IS_SEED, False)
+        ktk_cube_dataset_id
+        for ktk_cube_dataset_id, ds in datasets.items()
+        if ds.metadata.get(KTK_CUBE_METADATA_KEY_IS_SEED, False)
     }
     if len(seed_candidates) == 0:
         raise ValueError(
@@ -214,7 +213,7 @@ def discover_cube(uuid_prefix, store, filter_klee_dataset_ids=None):
     seed_dataset = list(seed_candidates)[0]
 
     seed_ds = datasets[seed_dataset]
-    dimension_columns = seed_ds.metadata.get(KLEE_METADATA_DIMENSION_COLUMNS)
+    dimension_columns = seed_ds.metadata.get(KTK_CUBE_METADATA_DIMENSION_COLUMNS)
     if dimension_columns is None:
         raise ValueError(
             'Could not recover dimension columns from seed dataset ("{seed_dataset}") of cube "{uuid_prefix}".'.format(
@@ -223,20 +222,18 @@ def discover_cube(uuid_prefix, store, filter_klee_dataset_ids=None):
         )
 
     # datasets written with new kartothek versions (after merge of PR#7747)
-    # always set KLEE_METADATA_PARTITION_COLUMNS and KLEE_METADATA_TIMESTAMP_COLUMN in the metadata.
-    # Older versions of klee do not write these; instead, these columns are inferred from
-    # the actual partitioning: partition_columns are all but the last partition key and the timestamp_column
-    # is the last partition key.
+    # always set KTK_CUBE_METADATA_PARTITION_COLUMNS in the metadata.
+    # Older versions of ktk_cube do not write these; instead, these columns are inferred from
+    # the actual partitioning: partition_columns are all but the last partition key
     #
-    # TODO: once we're sure we have re-written all klee cubes, the code
+    # TODO: once we're sure we have re-written all kartothek cubes, the code
     # in the branch `if partition_columns is None` below can be removed.
     #
     # read the now unused timestamp column just to make sure we can still read older cubes.
     #
     # TODO: once all cubes are re-created and don't use timestamp column anymore, remove the timestamp column handling
     #       entirely
-    partition_columns = seed_ds.metadata.get(KLEE_METADATA_PARTITION_COLUMNS)
-    timestamp_column = seed_ds.metadata.get(KLEE_METADATA_TIMESTAMP_COLUMN)
+    partition_columns = seed_ds.metadata.get(KTK_CUBE_METADATA_PARTITION_COLUMNS)
 
     if partition_columns is None:
         # infer the partition columns and timestamp column from the actual partitioning:
@@ -255,19 +252,13 @@ def discover_cube(uuid_prefix, store, filter_klee_dataset_ids=None):
                 ).format(seed_dataset=seed_dataset, partition_key=partition_keys[0])
             )
         partition_columns = partition_keys[:-1]
-        timestamp_column = partition_keys[-1]
 
     index_columns = set()
     for ds in datasets.values():
         index_columns |= set(ds.indices.keys()) - (
-            set(dimension_columns) | set(partition_columns) | {timestamp_column}
+            set(dimension_columns) | set(partition_columns)
         )
 
-    # we only support the default timestamp column in the compat code
-    if (timestamp_column is not None) and (timestamp_column != "KLEE_TS"):
-        raise NotImplementedError(
-            f"Can only read old cubes if the timestamp column is 'KLEE_TS', but '{timestamp_column}' was detected."
-        )
 
     cube = Cube(
         uuid_prefix=uuid_prefix,

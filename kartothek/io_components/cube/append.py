@@ -6,7 +6,7 @@ __all__ = ("check_existing_datasets",)
 
 
 def check_existing_datasets(
-    existing_datasets: Dict[str, DatasetMetadata], klee_dataset_ids: Iterable[str]
+    existing_datasets: Dict[str, DatasetMetadata], ktk_cube_dataset_ids: Iterable[str]
 ):
     """
     Check existing datasets for append operation to ensure they all exist.
@@ -15,14 +15,14 @@ def check_existing_datasets(
     ----------
     existing_datasets:
         Existing datasets.
-    klee_dataset_ids:
+    ktk_cube_dataset_ids:
         Datasets that user wants to append data to.
 
     Raises
     ------
     ValueError: In case a dataset does not exist yet.
     """
-    unknown_datasets = set(klee_dataset_ids) - set(existing_datasets.keys())
+    unknown_datasets = set(ktk_cube_dataset_ids) - set(existing_datasets.keys())
     if unknown_datasets:
         raise ValueError(
             "Unknown / non-existing datasets: {}".format(

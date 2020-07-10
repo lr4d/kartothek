@@ -47,12 +47,12 @@ def stats(ctx, include, exclude):
     blobsize = 0
     files = 0
 
-    for i, klee_dataset_id in enumerate(sorted(data.keys())):
-        stats = data[klee_dataset_id]
+    for i, ktk_cube_dataset_id in enumerate(sorted(data.keys())):
+        stats = data[ktk_cube_dataset_id]
 
         if i > 0:
             click.echo("")
-        click.echo(h(klee_dataset_id))
+        click.echo(h(ktk_cube_dataset_id))
         for what in sorted(stats.keys()):
             click.echo(b("{}:".format(what)) + "  {:,}".format(stats[what]))
 

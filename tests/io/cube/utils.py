@@ -87,12 +87,12 @@ def wrap_ddf_write(f):
         for part in data:
             if not isinstance(part, dict):
                 part = {cube.seed_dataset: part}
-            for klee_dataset_id, df in part.items():
-                dfs[klee_dataset_id].append(dask.delayed(_return_obj)(df))
+            for ktk_cube_dataset_id, df in part.items():
+                dfs[ktk_cube_dataset_id].append(dask.delayed(_return_obj)(df))
 
         ddfs = {
-            klee_dataset_id: ddf.from_delayed(delayed_objs)
-            for klee_dataset_id, delayed_objs in dfs.items()
+            ktk_cube_dataset_id: ddf.from_delayed(delayed_objs)
+            for ktk_cube_dataset_id, delayed_objs in dfs.items()
         }
 
         delayed = f(data=ddfs, cube=cube, **kwargs)
@@ -119,14 +119,14 @@ def wrap_ddf_read(f):
 
 
 def _add_dataset_ids(data, kwargs):
-    if "klee_dataset_ids" not in kwargs:
-        klee_dataset_ids = set()
+    if "ktk_cube_dataset_ids" not in kwargs:
+        ktk_cube_dataset_ids = set()
         for part in data:
             if isinstance(part, dict):
-                klee_dataset_ids |= set(part.keys())
+                ktk_cube_dataset_ids |= set(part.keys())
 
-        if klee_dataset_ids:
-            kwargs["klee_dataset_ids"] = sorted(klee_dataset_ids)
+        if ktk_cube_dataset_ids:
+            kwargs["ktk_cube_dataset_ids"] = sorted(ktk_cube_dataset_ids)
 
 
 def wrap_bag_copy(f, blocksize):

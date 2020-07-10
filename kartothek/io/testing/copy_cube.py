@@ -252,7 +252,7 @@ def test_partial_copy_dataset_list(
     all_datasets = discover_datasets_unchecked(
         uuid_prefix=cube.uuid_prefix,
         store=function_store,
-        filter_klee_dataset_ids=["seed", "enrich"],
+        filter_ktk_cube_dataset_ids=["seed", "enrich"],
     )
     copied_ds_keys = set()
     copied_ds_keys |= get_dataset_keys(all_datasets["seed"])
@@ -273,7 +273,7 @@ def test_partial_copy_dataset_dict(
     all_datasets = discover_datasets_unchecked(
         uuid_prefix=cube.uuid_prefix,
         store=function_store,
-        filter_klee_dataset_ids=["seed", "enrich"],
+        filter_ktk_cube_dataset_ids=["seed", "enrich"],
     )
     copied_ds_keys = set()
     copied_ds_keys |= get_dataset_keys(all_datasets["seed"])

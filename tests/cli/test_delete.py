@@ -47,7 +47,7 @@ def test_partial_delete_include_pattern(
     datasets = discover_datasets_unchecked(
         uuid_prefix=built_cube.uuid_prefix,
         store=store,
-        filter_klee_dataset_ids=delete_tables,
+        filter_ktk_cube_dataset_ids=delete_tables,
     )
     delete_keys = set()
     for name in delete_tables:
@@ -84,7 +84,7 @@ def test_partial_delete_exclude_pattern(
     datasets = discover_datasets_unchecked(
         uuid_prefix=built_cube.uuid_prefix,
         store=store,
-        filter_klee_dataset_ids=delete_tables,
+        filter_ktk_cube_dataset_ids=delete_tables,
     )
     delete_keys = set()
     for name in delete_tables:
@@ -120,7 +120,7 @@ def test_partial_delete_include_exclude_pattern(
     datasets = discover_datasets_unchecked(
         uuid_prefix=built_cube.uuid_prefix,
         store=store,
-        filter_klee_dataset_ids=delete_tables,
+        filter_ktk_cube_dataset_ids=delete_tables,
     )
     delete_keys = set()
     for name in delete_tables:

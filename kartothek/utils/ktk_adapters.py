@@ -30,7 +30,7 @@ __all__ = (
 
 def get_dataset_schema(dataset):
     """
-    Get schema from a Klee2-compatible Kartothek dataset.
+    Get schema from a Kartothek_Cube-compatible Kartothek dataset.
 
     Parameters
     ----------
@@ -47,7 +47,7 @@ def get_dataset_schema(dataset):
 
 def get_dataset_columns(dataset):
     """
-    Get columns present in a Klee2-compatible Kartothek dataset.
+    Get columns present in a Kartothek_Cube-compatible Kartothek dataset.
 
     Parameters
     ----------
@@ -62,7 +62,7 @@ def get_dataset_columns(dataset):
     return {
         converter_str(col)
         for col in get_dataset_schema(dataset).names
-        if not col.startswith("__") and col != "KLEE_TS"
+        if not col.startswith("__") and col != "KTK_CUBE_TS"
     }
 
 
@@ -202,7 +202,7 @@ def get_partition_dataframe(dataset, cube):
     df: pandas.DataFrame
         DataFrame with partition data.
     """
-    cols = sorted(set(dataset.partition_keys) - {"KLEE_TS"})
+    cols = sorted(set(dataset.partition_keys) - {"KTK_CUBE_TS"})
 
     if not cols:
         return pd.DataFrame(

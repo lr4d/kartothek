@@ -62,7 +62,7 @@ def _process_partition_by(partition_by, cube, all_available_columns, indexed_col
     all_available_columns: Set[str]
         All columns that are available for query.
     indexed_columns: Dict[str, Set[str]]
-        Indexed columns per klee dataset ID.
+        Indexed columns per ktk_cube dataset ID.
 
     Returns
     -------
@@ -118,8 +118,8 @@ def _test_condition_types(conditions, datasets):
             if op != "in":
                 val = [val]
 
-            for klee_dataset_id in sorted(datasets.keys()):
-                dataset = datasets[klee_dataset_id]
+            for ktk_cube_dataset_id in sorted(datasets.keys()):
+                dataset = datasets[ktk_cube_dataset_id]
                 meta = get_dataset_schema(dataset)
                 if col not in meta.names:
                     continue
@@ -179,7 +179,7 @@ def _process_conditions(
     all_available_columns: Set[str]
         All columns that are available for query.
     indexed_columns: Dict[str, Set[str]]
-        Indexed columns per klee dataset ID.
+        Indexed columns per ktk_cube dataset ID.
 
     Returns
     -------
@@ -207,8 +207,8 @@ def _process_conditions(
     conditions_split = conditions.split_by_column()
 
     conditions_pre = {}
-    for klee_dataset_id, ds in datasets.items():
-        candidate_cols = indexed_columns[klee_dataset_id]
+    for ktk_cube_dataset_id, ds in datasets.items():
+        candidate_cols = indexed_columns[ktk_cube_dataset_id]
         if not candidate_cols:
             continue
 
@@ -218,10 +218,10 @@ def _process_conditions(
         if not filtered:
             continue
 
-        conditions_pre[klee_dataset_id] = reduce(Conjunction.from_two, filtered)
+        conditions_pre[ktk_cube_dataset_id] = reduce(Conjunction.from_two, filtered)
 
     conditions_post = {}
-    for klee_dataset_id, ds in datasets.items():
+    for ktk_cube_dataset_id, ds in datasets.items():
         candidate_cols = (get_dataset_columns(ds) & condition_columns) - set(
             cube.partition_columns
         )
@@ -234,7 +234,7 @@ def _process_conditions(
         if not filtered:
             continue
 
-        conditions_post[klee_dataset_id] = reduce(Conjunction.from_two, filtered)
+        conditions_post[ktk_cube_dataset_id] = reduce(Conjunction.from_two, filtered)
 
     return conditions_pre, conditions_post
 
@@ -298,7 +298,7 @@ def determine_intention(
     payload_columns: Optional[Iterable[str]]
         Which columns apart from ``dimension_columns`` and ``partition_by`` should be returned from the query.
     indexed_columns: Dict[str, Set[str]]
-        Indexed columns per klee dataset ID.
+        Indexed columns per ktk_cube dataset ID.
 
     Returns
     -------

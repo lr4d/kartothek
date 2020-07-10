@@ -171,8 +171,8 @@ def azure_store_cfg_factory(caplog):
         if not account_key:
             pytest.skip("{} not provided".format(env_name))
 
-        container = "raq-tests-{component}-{py_major}-{py_minor}-{suffix}".format(
-            component="klee2",
+        container = "tests-{component}-{py_major}-{py_minor}-{suffix}".format(
+            component="kartothek",
             py_major=sys.version_info.major,
             py_minor=sys.version_info.minor,
             suffix=suffix,

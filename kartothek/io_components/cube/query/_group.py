@@ -37,7 +37,7 @@ class QueryGroup:
     dimension_columns: Tuple[str, ...]
         Dimension columns, used for de-duplication and to join data.
     restrictive_dataset_ids: Set[str]
-        Datasets (by Klee dataset ID) that are restrictive during the join process.
+        Datasets (by Ktk_cube dataset ID) that are restrictive during the join process.
     """
 
     metapartitions = attr.ib(
@@ -125,13 +125,13 @@ def _load_partition_dfs(cube, group, partition_mps, store):
     dfs_restrict = []
     dfs_other = []
 
-    for klee_dataset_id, empty in group.empty_df.items():
-        mps = partition_mps.get(klee_dataset_id, [])
+    for ktk_cube_dataset_id, empty in group.empty_df.items():
+        mps = partition_mps.get(ktk_cube_dataset_id, [])
         df = _load_all_mps(
             mps=mps,
             store=store,
-            load_columns=list(group.load_columns[klee_dataset_id]),
-            predicates=group.predicates.get(klee_dataset_id, None),
+            load_columns=list(group.load_columns[ktk_cube_dataset_id]),
+            predicates=group.predicates.get(ktk_cube_dataset_id, None),
             empty=empty,
         )
 
@@ -143,10 +143,10 @@ def _load_partition_dfs(cube, group, partition_mps, store):
 
         df = drop_sorted_duplicates_keep_last(df, dimensionality)
 
-        if klee_dataset_id == cube.seed_dataset:
+        if ktk_cube_dataset_id == cube.seed_dataset:
             assert df_seed is None
             df_seed = df
-        elif klee_dataset_id in group.restrictive_dataset_ids:
+        elif ktk_cube_dataset_id in group.restrictive_dataset_ids:
             dfs_restrict.append(df)
         else:
             dfs_other.append(df)

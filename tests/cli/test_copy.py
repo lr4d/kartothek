@@ -139,7 +139,7 @@ def test_partial_copy_include_pattern(
     copied_datasets = discover_datasets_unchecked(
         uuid_prefix=built_cube.uuid_prefix,
         store=store,
-        filter_klee_dataset_ids=copy_tables,
+        filter_ktk_cube_dataset_ids=copy_tables,
     )
     copy_keys = set()
     for name in copy_tables:
@@ -160,7 +160,7 @@ def test_partial_copy_include_pattern_nomatch(cli, built_cube, skv, store, store
     copied_datasets = discover_datasets_unchecked(
         uuid_prefix=built_cube.uuid_prefix,
         store=store,
-        filter_klee_dataset_ids=["source"],
+        filter_ktk_cube_dataset_ids=["source"],
     )
     copy_keys = get_dataset_keys(copied_datasets["source"])  # noqa
     result = cli(
@@ -203,7 +203,7 @@ def test_partial_copy_exclude_pattern(
     copied_datasets = discover_datasets_unchecked(
         uuid_prefix=built_cube.uuid_prefix,
         store=store,
-        filter_klee_dataset_ids=copy_tables,
+        filter_ktk_cube_dataset_ids=copy_tables,
     )
     copy_keys = set()
     for name in copy_tables:
@@ -262,7 +262,7 @@ def test_partial_copy_include_exclude_pattern(
     copied_datasets = discover_datasets_unchecked(
         uuid_prefix=built_cube.uuid_prefix,
         store=store,
-        filter_klee_dataset_ids=copy_tables,
+        filter_ktk_cube_dataset_ids=copy_tables,
     )
     copy_keys = set()
     for name in copy_tables:

@@ -39,11 +39,11 @@ def _get_indexed_columns(datasets):
     Returns
     -------
     indexed_columns: Dict[str, Set[str]]
-        Indexed columns per klee dataset ID.
+        Indexed columns per ktk_cube dataset ID.
     """
     result = {}
-    for klee_dataset_id, ds in datasets.items():
-        result[klee_dataset_id] = set(ds.indices.keys())
+    for ktk_cube_dataset_id, ds in datasets.items():
+        result[ktk_cube_dataset_id] = set(ds.indices.keys())
     return result
 
 
@@ -82,7 +82,7 @@ def _load_required_explicit_indices(datasets, intention, store):
 
     # load all indices that describe these columns
     datasets_result = {}
-    for klee_dataset_id, ds in datasets.items():
+    for ktk_cube_dataset_id, ds in datasets.items():
         indices = {
             column: index.load(store)
             if (
@@ -93,7 +93,7 @@ def _load_required_explicit_indices(datasets, intention, store):
             for column, index in ds.indices.items()
         }
         ds = ds.copy(indices=indices)
-        datasets_result[klee_dataset_id] = ds
+        datasets_result[ktk_cube_dataset_id] = ds
 
     return datasets_result
 
@@ -117,21 +117,21 @@ def _determine_restrictive_dataset_ids(cube, datasets, intention):
     Returns
     -------
     restrictive_dataset_ids: Set[str]
-        Set of restrictive datasets (by Klee dataset ID).
+        Set of restrictive datasets (by Ktk_cube dataset ID).
     """
     result = set()
-    for klee_dataset_id, dataset in datasets.items():
-        if klee_dataset_id == cube.seed_dataset:
+    for ktk_cube_dataset_id, dataset in datasets.items():
+        if ktk_cube_dataset_id == cube.seed_dataset:
             continue
 
         mask = (
             set(intention.partition_by)
-            | intention.conditions_pre.get(klee_dataset_id, Conjunction([])).columns
-            | intention.conditions_post.get(klee_dataset_id, Conjunction([])).columns
+            | intention.conditions_pre.get(ktk_cube_dataset_id, Conjunction([])).columns
+            | intention.conditions_post.get(ktk_cube_dataset_id, Conjunction([])).columns
         ) - (set(cube.dimension_columns) | set(cube.partition_columns))
         overlap = mask & get_dataset_columns(dataset)
         if overlap:
-            result.add(klee_dataset_id)
+            result.add(ktk_cube_dataset_id)
 
     return result
 
@@ -155,8 +155,8 @@ def _dermine_load_columns(cube, datasets, intention):
         Columns to load.
     """
     result = {}
-    for klee_dataset_id, ds in datasets.items():
-        is_seed = klee_dataset_id == cube.seed_dataset
+    for ktk_cube_dataset_id, ds in datasets.items():
+        is_seed = ktk_cube_dataset_id == cube.seed_dataset
         ds_cols = get_dataset_columns(ds)
         dimensionality = ds_cols & set(cube.dimension_columns)
         is_projection = not dimensionality.issubset(set(intention.dimension_columns))
@@ -164,7 +164,7 @@ def _dermine_load_columns(cube, datasets, intention):
         mask = (
             set(intention.output_columns)
             | set(intention.dimension_columns)
-            | intention.conditions_post.get(klee_dataset_id, Conjunction([])).columns
+            | intention.conditions_post.get(ktk_cube_dataset_id, Conjunction([])).columns
         )
         if not is_seed:
             # optimize load routine by only restore partition columns for seed
@@ -178,10 +178,10 @@ def _dermine_load_columns(cube, datasets, intention):
             if is_projection and payload_requested:
                 raise ValueError(
                     (
-                        'Cannot project dataset "{klee_dataset_id}" with dimensionality [{dimensionality}] to '
+                        'Cannot project dataset "{ktk_cube_dataset_id}" with dimensionality [{dimensionality}] to '
                         "[{dimension_columns}] while keeping the following payload intact: {payload}"
                     ).format(
-                        klee_dataset_id=klee_dataset_id,
+                        ktk_cube_dataset_id=ktk_cube_dataset_id,
                         dimensionality=", ".join(sorted(dimensionality)),
                         dimension_columns=", ".join(
                             sorted(intention.dimension_columns)
@@ -190,7 +190,7 @@ def _dermine_load_columns(cube, datasets, intention):
                     )
                 )
 
-            result[klee_dataset_id] = candidates
+            result[ktk_cube_dataset_id] = candidates
     return result
 
 
@@ -212,9 +212,9 @@ def _filter_relevant_datasets(datasets, load_columns):
     """
     which = set(load_columns.keys())
     return {
-        klee_dataset_id: ds
-        for klee_dataset_id, ds in datasets.items()
-        if klee_dataset_id in which
+        ktk_cube_dataset_id: ds
+        for ktk_cube_dataset_id, ds in datasets.items()
+        if ktk_cube_dataset_id in which
     }
 
 
@@ -293,14 +293,14 @@ def plan_query(
 
     if not isinstance(datasets, dict):
         datasets = discover_datasets(
-            cube=cube, store=store, filter_klee_dataset_ids=datasets
+            cube=cube, store=store, filter_ktk_cube_dataset_ids=datasets
         )
     else:
         datasets = check_datasets(datasets, cube)
 
     datasets = {
-        klee_dataset_id: ds.load_partition_indices()
-        for klee_dataset_id, ds in datasets.items()
+        ktk_cube_dataset_id: ds.load_partition_indices()
+        for ktk_cube_dataset_id, ds in datasets.items()
     }
     indexed_columns = _get_indexed_columns(datasets)
 
@@ -327,15 +327,15 @@ def plan_query(
     datasets = _filter_relevant_datasets(datasets=datasets, load_columns=load_columns)
 
     empty_df = {
-        klee_dataset_id: _reduce_empty_dtype_sizes(
+        ktk_cube_dataset_id: _reduce_empty_dtype_sizes(
             empty_dataframe_from_schema(
                 schema=ds.table_meta[SINGLE_TABLE],
                 columns=sorted(
-                    get_dataset_columns(ds) & set(load_columns[klee_dataset_id])
+                    get_dataset_columns(ds) & set(load_columns[ktk_cube_dataset_id])
                 ),
             )
         )
-        for klee_dataset_id, ds in datasets.items()
+        for ktk_cube_dataset_id, ds in datasets.items()
     }
 
     empty_df_single = empty_df[cube.seed_dataset].copy()

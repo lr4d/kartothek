@@ -32,13 +32,13 @@ def info(ctx):
     click.echo(b("Index Columns:") + _collist_string_index(cube, datasets))
     click.echo(b("Seed Dataset:") + "      {}".format(cube.seed_dataset))
 
-    for klee_dataset_id in sorted(datasets.keys()):
-        _info_dataset(klee_dataset_id, datasets[klee_dataset_id], cube)
+    for ktk_cube_dataset_id in sorted(datasets.keys()):
+        _info_dataset(ktk_cube_dataset_id, datasets[ktk_cube_dataset_id], cube)
 
 
-def _info_dataset(klee_dataset_id, ds, cube):
+def _info_dataset(ktk_cube_dataset_id, ds, cube):
     click.echo("")
-    click.echo(h("Dataset: {}".format(klee_dataset_id)))
+    click.echo(h("Dataset: {}".format(ktk_cube_dataset_id)))
 
     ds = ds.load_partition_indices()
     schema = ds.table_meta[SINGLE_TABLE]
@@ -81,8 +81,8 @@ def _collist_string(cols, schema):
 def _collist_string_index(cube, datasets):
     lines = []
     for col in sorted(cube.index_columns):
-        for klee_dataset_id in sorted(datasets.keys()):
-            ds = datasets[klee_dataset_id]
+        for ktk_cube_dataset_id in sorted(datasets.keys()):
+            ds = datasets[ktk_cube_dataset_id]
             schema = ds.table_meta[SINGLE_TABLE]
             if col in schema.names:
                 lines.append(

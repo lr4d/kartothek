@@ -66,7 +66,7 @@ def test_dask_bag_fusing(
         _count_execution_to_store, store=function_store
     )
     bag = extend_cube_from_bag(
-        data=bag, cube=cube, store=function_store, klee_dataset_ids=["a", "b"]
+        data=bag, cube=cube, store=function_store, ktk_cube_dataset_ids=["a", "b"]
     )
     dct = dask.optimize(bag)[0].__dask_graph__()
     tasks = {k for k, v in dct.items() if dask.core.istask(v)}
@@ -103,7 +103,7 @@ def test_function_executed_once(driver, function_store, driver_name, existing_cu
             dfs, partition_size=1 if driver_name == "dask_bag_bs1" else 3
         ).map(_count_execution_to_store, store=function_store)
         bag = extend_cube_from_bag(
-            data=bag, cube=cube, store=function_store, klee_dataset_ids=["a", "b"]
+            data=bag, cube=cube, store=function_store, ktk_cube_dataset_ids=["a", "b"]
         )
         bag.compute()
     else:

@@ -32,8 +32,8 @@ def query(ctx):
     store_instance = store()
 
     datasets = {
-        klee_dataset_id: ds.load_all_indices(store_instance)
-        for klee_dataset_id, ds in datasets.items()
+        ktk_cube_dataset_id: ds.load_all_indices(store_instance)
+        for ktk_cube_dataset_id, ds in datasets.items()
     }
 
     all_columns = set()

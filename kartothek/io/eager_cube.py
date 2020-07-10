@@ -8,9 +8,9 @@ import pandas as pd
 from kartothek.api.consistency import get_cube_payload
 from kartothek.api.discover import discover_datasets, discover_datasets_unchecked
 from kartothek.core.cube.constants import (
-    KLEE_DF_SERIALIZER,
-    KLEE_METADATA_STORAGE_FORMAT,
-    KLEE_METADATA_VERSION,
+    KTK_CUBE_DF_SERIALIZER,
+    KTK_CUBE_METADATA_STORAGE_FORMAT,
+    KTK_CUBE_METADATA_VERSION,
 )
 from kartothek.io.eager import (
     store_dataframes_as_dataset,
@@ -59,7 +59,7 @@ __all__ = (
 
 def build_cube(data, cube, store, metadata=None, overwrite=False, partition_on=None):
     """
-    Store given dataframes as Klee cube.
+    Store given dataframes as Ktk_cube cube.
 
     ``data`` can be formatted in multiple ways:
 
@@ -174,9 +174,9 @@ def build_cube(data, cube, store, metadata=None, overwrite=False, partition_on=N
         DatasetMetadata for every dataset written.
     """
     data = _normalize_user_input(data, cube)
-    klee_dataset_ids = set(data.keys())
-    partition_on = prepare_ktk_partition_on(cube, klee_dataset_ids, partition_on)
-    metadata = check_provided_metadata_dict(metadata, klee_dataset_ids)
+    ktk_cube_dataset_ids = set(data.keys())
+    partition_on = prepare_ktk_partition_on(cube, ktk_cube_dataset_ids, partition_on)
+    metadata = check_provided_metadata_dict(metadata, ktk_cube_dataset_ids)
 
     existing_datasets = discover_datasets_unchecked(cube.uuid_prefix, store)
     check_datasets_prebuild(data, cube, existing_datasets)
@@ -187,16 +187,16 @@ def build_cube(data, cube, store, metadata=None, overwrite=False, partition_on=N
     )
 
     datasets = {}
-    for klee_dataset_id, part in data.items():
-        datasets[klee_dataset_id] = store_dataframes_as_dataset(
+    for ktk_cube_dataset_id, part in data.items():
+        datasets[ktk_cube_dataset_id] = store_dataframes_as_dataset(
             store=store,
-            dataset_uuid=cube.ktk_dataset_uuid(klee_dataset_id),
+            dataset_uuid=cube.ktk_dataset_uuid(ktk_cube_dataset_id),
             dfs=part,
-            metadata=prepare_ktk_metadata(cube, klee_dataset_id, metadata),
-            partition_on=list(partition_on[klee_dataset_id]),
-            metadata_storage_format=KLEE_METADATA_STORAGE_FORMAT,
-            metadata_version=KLEE_METADATA_VERSION,
-            df_serializer=KLEE_DF_SERIALIZER,
+            metadata=prepare_ktk_metadata(cube, ktk_cube_dataset_id, metadata),
+            partition_on=list(partition_on[ktk_cube_dataset_id]),
+            metadata_storage_format=KTK_CUBE_METADATA_STORAGE_FORMAT,
+            metadata_version=KTK_CUBE_METADATA_VERSION,
+            df_serializer=KTK_CUBE_DF_SERIALIZER,
             overwrite=overwrite,
         )
 
@@ -207,7 +207,7 @@ def build_cube(data, cube, store, metadata=None, overwrite=False, partition_on=N
 
 def extend_cube(data, cube, store, metadata=None, overwrite=False, partition_on=None):
     """
-    Store given dataframes into an existing Klee cube.
+    Store given dataframes into an existing Kartothek cube.
 
     For details on ``data`` and ``metadata``, see :meth:`build_cube`.
 
@@ -234,18 +234,18 @@ def extend_cube(data, cube, store, metadata=None, overwrite=False, partition_on=
         DatasetMetadata for every dataset written.
     """
     data = _normalize_user_input(data, cube)
-    klee_dataset_ids = set(data.keys())
-    partition_on = prepare_ktk_partition_on(cube, klee_dataset_ids, partition_on)
-    metadata = check_provided_metadata_dict(metadata, klee_dataset_ids)
+    ktk_cube_dataset_ids = set(data.keys())
+    partition_on = prepare_ktk_partition_on(cube, ktk_cube_dataset_ids, partition_on)
+    metadata = check_provided_metadata_dict(metadata, ktk_cube_dataset_ids)
 
     check_datasets_preextend(data, cube)
 
     existing_datasets = discover_datasets(cube, store)
     if overwrite:
         existing_datasets_cut = {
-            klee_dataset_id: ds
-            for klee_dataset_id, ds in existing_datasets.items()
-            if klee_dataset_id not in data
+            ktk_cube_dataset_id: ds
+            for ktk_cube_dataset_id, ds in existing_datasets.items()
+            if ktk_cube_dataset_id not in data
         }
     else:
         existing_datasets_cut = existing_datasets
@@ -260,16 +260,16 @@ def extend_cube(data, cube, store, metadata=None, overwrite=False, partition_on=
     )
 
     datasets = {}
-    for klee_dataset_id, part in data.items():
-        datasets[klee_dataset_id] = store_dataframes_as_dataset(
+    for ktk_cube_dataset_id, part in data.items():
+        datasets[ktk_cube_dataset_id] = store_dataframes_as_dataset(
             store=store,
-            dataset_uuid=cube.ktk_dataset_uuid(klee_dataset_id),
+            dataset_uuid=cube.ktk_dataset_uuid(ktk_cube_dataset_id),
             dfs=part,
-            metadata=prepare_ktk_metadata(cube, klee_dataset_id, metadata),
-            partition_on=list(partition_on[klee_dataset_id]),
-            metadata_storage_format=KLEE_METADATA_STORAGE_FORMAT,
-            metadata_version=KLEE_METADATA_VERSION,
-            df_serializer=KLEE_DF_SERIALIZER,
+            metadata=prepare_ktk_metadata(cube, ktk_cube_dataset_id, metadata),
+            partition_on=list(partition_on[ktk_cube_dataset_id]),
+            metadata_storage_format=KTK_CUBE_METADATA_STORAGE_FORMAT,
+            metadata_version=KTK_CUBE_METADATA_VERSION,
+            df_serializer=KTK_CUBE_DF_SERIALIZER,
             overwrite=overwrite,
         )
 
@@ -305,7 +305,7 @@ def query_cube(
         Conditions that should be applied, optional.
     datasets: Union[None, Iterable[str], Dict[str, kartothek.DatasetMetadata]]
         Datasets to query, must all be part of the cube. May be either the result of :meth:`discover_datasets`, a list
-        of Klee dataset ID or ``None`` (in which case auto-discovery will be used).
+        of Ktk_cube dataset ID or ``None`` (in which case auto-discovery will be used).
     dimension_columns: Union[None, str, Iterable[str]]
         Dimension columns of the query, may result in projection. If not provided, dimension columns from cube
         specification will be used.
@@ -359,19 +359,19 @@ def delete_cube(cube, store, datasets=None):
         KV store.
     datasets: Union[None, Iterable[str], Dict[str, kartothek.DatasetMetadata]]
         Datasets to delete, must all be part of the cube. May be either the result of :meth:`discover_datasets`, a list
-        of Klee dataset ID or ``None`` (in which case entire cube will be deleted).
+        of Ktk_cube dataset ID or ``None`` (in which case entire cube will be deleted).
     """
     if callable(store):
         store = store()
 
     if not isinstance(datasets, dict):
         datasets = discover_datasets_unchecked(
-            uuid_prefix=cube.uuid_prefix, store=store, filter_klee_dataset_ids=datasets
+            uuid_prefix=cube.uuid_prefix, store=store, filter_ktk_cube_dataset_ids=datasets
         )
 
     keys = set()
-    for klee_dataset_id in sorted(datasets.keys()):
-        ds = datasets[klee_dataset_id]
+    for ktk_cube_dataset_id in sorted(datasets.keys()):
+        ds = datasets[ktk_cube_dataset_id]
         keys |= get_dataset_keys(ds)
 
     for k in sorted(keys):
@@ -394,7 +394,7 @@ def copy_cube(cube, src_store, tgt_store, overwrite=False, datasets=None):
         If possibly existing datasets in the target store should be overwritten.
     datasets: Union[None, Iterable[str], Dict[str, kartothek.DatasetMetadata]]
         Datasets to copy, must all be part of the cube. May be either the result of :meth:`discover_datasets`, a list
-        of Klee dataset ID or ``None`` (in which case entire cube will be copied).
+        of Ktk_cube dataset ID or ``None`` (in which case entire cube will be copied).
     """
     if callable(src_store):
         src_store = src_store()
@@ -426,19 +426,19 @@ def collect_stats(cube, store, datasets=None):
         KV store that preserves the cube.
     datasets: Union[None, Iterable[str], Dict[str, kartothek.DatasetMetadata]]
         Datasets to query, must all be part of the cube. May be either the result of :meth:`discover_datasets`, a list
-        of Klee dataset ID or ``None`` (in which case auto-discovery will be used).
+        of Ktk_cube dataset ID or ``None`` (in which case auto-discovery will be used).
 
     Returns
     -------
     stats: Dict[str, Dict[str, int]]
-        Statistics per klee dataset ID.
+        Statistics per ktk_cube dataset ID.
     """
     if callable(store):
         store = store()
 
     if not isinstance(datasets, dict):
         datasets = discover_datasets_unchecked(
-            uuid_prefix=cube.uuid_prefix, store=store, filter_klee_dataset_ids=datasets
+            uuid_prefix=cube.uuid_prefix, store=store, filter_ktk_cube_dataset_ids=datasets
         )
 
     all_metapartitions = get_metapartitions_for_stats(datasets)
@@ -450,7 +450,7 @@ def cleanup_cube(cube, store):
     Remove unused keys from cube datasets.
 
     .. important::
-        All untracked keys which start with the cube's `uuid_prefix` followed by the `KLEE_UUID_SEPERATOR`
+        All untracked keys which start with the cube's `uuid_prefix` followed by the `KTK_CUBE_UUID_SEPERATOR`
         (e.g. `my_cube_uuid++seed...`) will be deleted by this routine. These keys may be leftovers from past
         overwrites or index updates.
 
@@ -472,21 +472,21 @@ def cleanup_cube(cube, store):
 
 
 def remove_partitions(
-    cube, store, conditions=None, klee_dataset_ids=None, metadata=None
+    cube, store, conditions=None, ktk_cube_dataset_ids=None, metadata=None
 ):
     """
     Remove given partition range from cube using a transaction.
 
     Parameters
     ----------
-    cube: klee.core.cube.Cube
+    cube: kartothek.core.cube.cube.Cube
         Cube spec.
     store: Union[simplekv.KeyValueStore, Callable[[], simplekv.KeyValueStore]]
         Store.
     conditions: Union[None, Condition, Iterable[Condition], Conjunction]
         Conditions that should be applied, optional. Defaults to "entire cube".
-    klee_dataset_ids: Optional[Union[Iterable[Union[Str, Bytes]], Union[Str, Bytes]]]
-        Klee dataset IDs to apply the remove action to, optional. Default to "all".
+    ktk_cube_dataset_ids: Optional[Union[Iterable[Union[Str, Bytes]], Union[Str, Bytes]]]
+        Ktk_cube dataset IDs to apply the remove action to, optional. Default to "all".
     metadata: Optional[Dict[str, Dict[str, Any]]]
         Metadata for every the datasets, optional. Only given keys are updated/replaced. Deletion of
         metadata keys is not possible.
@@ -508,29 +508,29 @@ def remove_partitions(
     existing_datasets = discover_datasets(cube, store)
 
     for (
-        klee_dataset_id,
+        ktk_cube_dataset_id,
         (ds, mp, delete_scope),
     ) in prepare_metapartitions_for_removal_action(
         cube=cube,
         store=store_instance,
         conditions=conditions,
-        klee_dataset_ids=klee_dataset_ids,
+        ktk_cube_dataset_ids=ktk_cube_dataset_ids,
         existing_datasets=existing_datasets,
     ).items():
         mp = mp.store_dataframes(
-            store=store_instance, dataset_uuid=ds.uuid, df_serializer=KLEE_DF_SERIALIZER
+            store=store_instance, dataset_uuid=ds.uuid, df_serializer=KTK_CUBE_DF_SERIALIZER
         )
 
         ds_factory = metadata_factory_from_dataset(
             ds, with_schema=True, store=store_factory
         )
 
-        existing_datasets[klee_dataset_id] = update_dataset_from_partitions(
+        existing_datasets[ktk_cube_dataset_id] = update_dataset_from_partitions(
             mp,
             store_factory=store_factory,
             dataset_uuid=ds.uuid,
             ds_factory=ds_factory,
-            metadata=prepare_ktk_metadata(cube, klee_dataset_id, metadata),
+            metadata=prepare_ktk_metadata(cube, ktk_cube_dataset_id, metadata),
             metadata_merger=None,
             delete_scope=delete_scope,
         )
@@ -578,7 +578,7 @@ def append_to_cube(data, cube, store, metadata=None):
     partition_on = {k: v.partition_keys for k, v in existing_datasets.items()}
 
     check_existing_datasets(
-        existing_datasets=existing_datasets, klee_dataset_ids=set(data.keys())
+        existing_datasets=existing_datasets, ktk_cube_dataset_ids=set(data.keys())
     )
 
     # do all data preparation before writing anything
@@ -599,14 +599,14 @@ def append_to_cube(data, cube, store, metadata=None):
         store_factory = store
 
     updated_datasets = {}
-    for klee_dataset_id, part in data.items():
-        updated_datasets[klee_dataset_id] = update_dataset_from_dataframes(
+    for ktk_cube_dataset_id, part in data.items():
+        updated_datasets[ktk_cube_dataset_id] = update_dataset_from_dataframes(
             store=store_factory,
-            dataset_uuid=cube.ktk_dataset_uuid(klee_dataset_id),
+            dataset_uuid=cube.ktk_dataset_uuid(ktk_cube_dataset_id),
             df_list=part,
-            partition_on=list(partition_on[klee_dataset_id]),
-            df_serializer=KLEE_DF_SERIALIZER,
-            metadata=prepare_ktk_metadata(cube, klee_dataset_id, metadata),
+            partition_on=list(partition_on[ktk_cube_dataset_id]),
+            df_serializer=KTK_CUBE_DF_SERIALIZER,
+            metadata=prepare_ktk_metadata(cube, ktk_cube_dataset_id, metadata),
         )
 
     return apply_postwrite_checks(
@@ -637,18 +637,18 @@ def _normalize_user_input(data, cube):
 
 def _prepare_data_for_ktk_all(data, cube, existing_payload, partition_on):
     data = {
-        klee_dataset_id: prepare_data_for_ktk(
+        ktk_cube_dataset_id: prepare_data_for_ktk(
             df=df,
-            klee_dataset_id=klee_dataset_id,
+            ktk_cube_dataset_id=ktk_cube_dataset_id,
             cube=cube,
             existing_payload=existing_payload,
-            partition_on=partition_on[klee_dataset_id],
+            partition_on=partition_on[ktk_cube_dataset_id],
         )
-        for klee_dataset_id, df in data.items()
+        for ktk_cube_dataset_id, df in data.items()
     }
 
     empty_datasets = {
-        klee_dataset_id for klee_dataset_id, part in data.items() if part.is_sentinel
+        ktk_cube_dataset_id for ktk_cube_dataset_id, part in data.items() if part.is_sentinel
     }
     if empty_datasets:
         raise ValueError(

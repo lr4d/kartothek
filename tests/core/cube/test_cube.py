@@ -52,12 +52,12 @@ def test_ktk_dataset_uuid():
     with pytest.raises(ValueError) as exc:
         cube.ktk_dataset_uuid("f++")
     assert (
-        str(exc.value) == 'klee_dataset_id ("f++") must not contain UUID separator ++'
+        str(exc.value) == 'ktk_cube_dataset_id ("f++") must not contain UUID separator ++'
     )
 
     with pytest.raises(ValueError) as exc:
         cube.ktk_dataset_uuid("f ")
-    assert str(exc.value) == 'klee_dataset_id ("f ") is not compatible with kartothek'
+    assert str(exc.value) == 'ktk_cube_dataset_id ("f ") is not compatible with kartothek'
 
 
 def test_ktk_index_columns():

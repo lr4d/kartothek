@@ -315,12 +315,12 @@ def test_fail_wrong_dataset_ids(
             data={"extra": df_extra},
             cube=existing_cube,
             store=function_store,
-            klee_dataset_ids=["other"],
+            ktk_cube_dataset_ids=["other"],
         )
 
     assert (
-        'Klee Dataset ID "extra" is present during pipeline execution '
-        "but was not specified in klee_dataset_ids (other)." in str(exc.value)
+        'Ktk_cube Dataset ID "extra" is present during pipeline execution '
+        "but was not specified in ktk_cube_dataset_ids (other)." in str(exc.value)
     )
 
 
@@ -360,7 +360,7 @@ def test_fails_metadata_unknown_id(driver, function_store, existing_cube):
     )
     with pytest.raises(
         ValueError,
-        match="Provided metadata for otherwise unspecified klee_dataset_ids: bar, foo",
+        match="Provided metadata for otherwise unspecified ktk_cube_dataset_ids: bar, foo",
     ):
         driver(
             data={"extra": df_extra},
