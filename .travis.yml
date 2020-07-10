@@ -69,7 +69,7 @@ before_script:
   - if [[ $KTK_DOCS == 1 ]]; then python setup.py docs ; fi
 
 script:
-  - if [[ $KTK_TESTS == 1 ]]; then pytest --cov kartothek --cov-report xml --cov-report html ; fi
+  - if [[ $KTK_TESTS == 1 ]]; then pytest -x --cov kartothek --cov-report xml --cov-report html ; fi
 
 after_success:
   - if [[ $KTK_TESTS == 1 ]]; then travis_retry conda install codecov ; fi

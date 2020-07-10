@@ -2,7 +2,7 @@
 Changelog
 =========
 
-Version 4.0.0 (2020-07-XX)
+Version 3.11.0 (2020-07-XX)
 ===========================
 
 New functionality
