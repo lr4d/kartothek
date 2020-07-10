@@ -109,7 +109,6 @@ jobs:
         - export PATH="$HOME/miniconda/bin:$PATH"
         - export LC_ALL=en_US.UTF-8
         - export LANG=en_US.UTF-8
-        - export AZURE_BLOB_KEY_QE72NMJYY6MBI="secret:azure-blob-key-qe72nmjyy6mbi"
         - conda config --set always_yes yes --set changeps1 no
         - travis_retry conda update -q conda
         - conda config --add channels conda-forge
