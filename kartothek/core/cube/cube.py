@@ -93,7 +93,7 @@ class Cube:
     partition_columns: Tuple[str, ...]
         Columns that are used to partition the data. They also create (implicit) primary indices.
     uuid_prefix: str
-        All datasets that are part of the cube will have UUIDs of form ``'uuid_prefix+ktk_cube_dataset_id'``.
+        All datasets that are part of the cube will have UUIDs of form ``'uuid_prefix++ktk_cube_dataset_id'``.
     seed_dataset: str
         Dataset that present the ground-truth regarding cells present in the cube.
     index_columns: Tuple[str, ...]
