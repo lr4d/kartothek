@@ -43,8 +43,7 @@ before_install:
   - conda config --set channel_priority strict
 
 install:
-  - travis_retry conda create -n test-env --file=conda-requirements.txt --file=conda-test-requirements.txt python=$TRAVIS_PYTHON_VERSION $CONDA_CREATE_ARGS
-  - conda activate test-env
+  - travis_retry conda install --file=conda-requirements.txt --file=conda-test-requirements.txt python=$TRAVIS_PYTHON_VERSION $CONDA_CREATE_ARGS
   - >
     if [[ "${ARROW_NIGHTLY-0}" == 1 ]]; then
         # Install both arrow-cpp and pyarrow to make sure that we have the
